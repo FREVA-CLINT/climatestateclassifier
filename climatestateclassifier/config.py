@@ -2,10 +2,6 @@ import argparse
 import os
 import os.path
 
-LAMBDA_DICT_ONI = {
-    'graph': 1.0
-}
-
 LAMBDA_DICT_LOCATION = {
     'class': 1.0
 }
@@ -99,18 +95,6 @@ def set_common_args():
                             help="Comma separated list of ssi values that are used for validation")
     arg_parser.add_argument('--val-colors', type=str_list, default=None,
                             help="Comma separated list of colors for plotting evaluation graphs")
-    arg_parser.add_argument('--prediction-range', type=int, default=30,
-                            help="Number of months to predict oni time series")
-    arg_parser.add_argument('--prediction-index', type=int, default=None,
-                            help="Use an index of the oni time series as ground truth")
-    arg_parser.add_argument('--prediction-mean', action='store_true',
-                            help="Use the mean oni value as ground truth")
-    arg_parser.add_argument('--oni-range', type=lim_list, default="-4,6",
-                            help="Number of months to predict oni time series")
-    arg_parser.add_argument('--time-steps', type=int, default=1,
-                            help="Number of time steps that are used as input")
-    arg_parser.add_argument('--oni-resolution', type=int, default=20,
-                            help="Resolution of oni value when using ce loss")
     arg_parser.add_argument('--attention-dim', type=int, default=None,
                             help="Dimension of attention layer")
     arg_parser.add_argument('--decoder-dims', type=int_list, default=[512, 64],
@@ -121,8 +105,6 @@ def set_common_args():
                             help="Dropout probability for decoder")
     arg_parser.add_argument('--norm-to-ssi', type=float, default=None,
                             help="Dropout probability for decoder")
-    arg_parser.add_argument('--lstm', action='store_true',
-                            help="Use LSTM for decoding oni sequence")
     arg_parser.add_argument('--add-ssi', action='store_true',
                             help="Add ssi value to input of the decoder")
     arg_parser.add_argument('--loss-criterion', type=str, default="ce",
@@ -130,9 +112,6 @@ def set_common_args():
     arg_parser.add_argument('--rotate-ensembles', action='store_true',
                             help="Rotates the training cycle through all ensembles. In each cycle,"
                                  " a single ensemble is left out for validation, all others are used for training")
-    arg_parser.add_argument('--reference-ssis', type=float_list, default=None,
-                            help="Comma separated list of ssis values that are used"
-                                 " for plotting the ground truth oni series")
     arg_parser.add_argument('--max-rotations', type=int, default=5, help="Stop rotations after specified number")
     arg_parser.add_argument('--beam-size', type=int, default=5, help="Size of beam for explanation beam")
     arg_parser.add_argument('--reference-colors', type=str_list, default=None,
@@ -144,8 +123,8 @@ def set_common_args():
     arg_parser.add_argument('--attention', action='store_true', help="Apply attention layer")
     arg_parser.add_argument('--reverse-jja-indices', type=int_list, default='17,18,19',
                             help="Create plot images of the results for the comma separated list of time indices")
-    arg_parser.add_argument('--locations', type=str_list, default=',nh,sh,ne',
-                            help="Comma separated list of classes for location prediction")
+    arg_parser.add_argument('--classes', type=str_list, default=',nh,sh,ne',
+                            help="Comma separated list of classes for classifier")
     arg_parser.add_argument('--random-seed', type=int, default=None,
                             help="Random seed for iteration loop and initialization weights")
     arg_parser.add_argument('--global-padding', action='store_true', help="Use a custom padding for global dataset")
@@ -199,8 +178,6 @@ def set_evaluate_args(arg_file=None, prog_func=None):
                             help="Prefix used for the output filenames")
     arg_parser.add_argument('-f', '--load-from-file', type=str, action=LoadFromFile,
                             help="Load all the arguments from a text file")
-    arg_parser.add_argument('--std-percentile', type=float, default=0.0,
-                            help="Percentile for creating evaluation graphs of oni time-series")
     arg_parser.add_argument('--action', type=str, default='test', help="Prediction action: evaluate (test) with "
                                                                        "ground truth or predict (predict) without "
                                                                        "ground truth")
@@ -227,5 +204,5 @@ def set_evaluate_args(arg_file=None, prog_func=None):
                                  "gradient, epsilon, gamma, gamma+epsilon, alpha1beta0, alpha2beta1, "
                                  "patternattribution, patternnet")
     arg_parser.add_argument('--eval-years', type=str_list, default="1992", help="Read data via freva experiment")
-    arg_parser.add_argument('--gt-locations', type=str_list, default='', help="Read data via freva experiment")
+    arg_parser.add_argument('--gt-classes', type=str_list, default='', help="Read data via freva experiment")
     global_args(arg_parser, arg_file, prog_func)

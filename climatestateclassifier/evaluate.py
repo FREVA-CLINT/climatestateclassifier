@@ -4,19 +4,19 @@ import torch
 
 import lrp
 from . import config as cfg
-from .model.decoder import LocationDecoder
+from .model.decoder import Decoder
 from .model.encoder import Encoder
-from .model.net import LocationNet
-from .utils.explain_location_net import generate_explanations
+from .model.net import ClassificationNet
+from .utils.explain_net import generate_explanations
 from .utils.io import load_ckpt
-from .utils.netcdfloader import LocationNetCDFLoader
-from .utils.plot_location import plot_single_predictions, plot_explanations, \
+from .utils.netcdfloader import NetCDFLoader
+from .utils.plot_utils import plot_single_predictions, plot_explanations, \
     plot_mean_explanations, plot_class_predictions, plot_ssi_predictions, plot_prediction_overview
 
 
 def create_location_prediction(model, val_ensembles):
-    dataset = LocationNetCDFLoader(cfg.data_root_dir, cfg.in_names, cfg.in_types, cfg.in_sizes, val_ensembles,
-                                   cfg.val_ssis, cfg.locations, cfg.norm_to_ssi)
+    dataset = NetCDFLoader(cfg.data_root_dir, cfg.in_names, cfg.in_types, cfg.in_sizes, val_ensembles,
+                           cfg.val_ssis, cfg.locations, cfg.norm_to_ssi)
     data = []
     data_raw = []
     for i in range(4):
@@ -79,15 +79,15 @@ def evaluate(arg_file=None, prog_func=None):
                     rotation_string = 'rotation_{}'.format(rotation)
                     val_ensembles = set(cfg.val_ensembles[rotation:rotation + 1])
                     encoder = Encoder
-                    decoder = LocationDecoder
-                    model = LocationNet(encoder, decoder, img_size=cfg.in_sizes[0],
-                                        in_channels=in_channels,
-                                        encoding_layers=cfg.encoding_layers, stride=(1, 1), bn=False).to(cfg.device)
+                    decoder = Decoder
+                    model = ClassificationNet(encoder, decoder, img_size=cfg.in_sizes[0],
+                                              in_channels=in_channels,
+                                              encoding_layers=cfg.encoding_layers, stride=(1, 1), bn=False).to(cfg.device)
                     load_ckpt("{}/{}{}.pth".format(cfg.model_dir, cfg.model_names[i_model], rotation_string),
                               [('model', model)], cfg.device)
                     model.eval()
                     if cfg.plot_single_explanations or cfg.plot_mean_explanations:
-                        model = lrp.converter.convert_location_net(model).to(cfg.device)
+                        model = lrp.converter.convert_net(model).to(cfg.device)
                     single_predictions, single_labels, single_ssis, single_ensembles, dims, single_explanation,\
                         input_raw = create_location_prediction(model, val_ensembles)
                     predictions.append(single_predictions)
@@ -105,16 +105,16 @@ def evaluate(arg_file=None, prog_func=None):
                 inputs_raw = torch.cat(inputs_raw)
             else:
                 encoder = Encoder
-                decoder = LocationDecoder
+                decoder = Decoder
                 # create ssi predictions
-                model = LocationNet(encoder, decoder, img_size=cfg.in_sizes[0],
-                                    in_channels=in_channels,
-                                    encoding_layers=cfg.encoding_layers, stride=(1, 1), bn=False,
-                                    activation=False).to(cfg.device)
+                model = ClassificationNet(encoder, decoder, img_size=cfg.in_sizes[0],
+                                          in_channels=in_channels,
+                                          encoding_layers=cfg.encoding_layers, stride=(1, 1), bn=False,
+                                          activation=False).to(cfg.device)
                 load_ckpt("{}/{}.pth".format(cfg.model_dir, cfg.model_names[i_model]), [('model', model)], cfg.device)
                 model.eval()
                 if cfg.plot_single_explanations or cfg.plot_mean_explanations:
-                    model = lrp.converter.convert_location_net(model).to(cfg.device)
+                    model = lrp.converter.convert_net(model).to(cfg.device)
                 predictions, labels, ssis, ensembles, dims, explanations, \
                     inputs_raw = create_location_prediction(model, cfg.val_ensembles)
 

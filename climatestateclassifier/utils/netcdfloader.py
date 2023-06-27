@@ -71,105 +71,9 @@ def load_netcdf(path, data_name, data_type, data_size, keep_dss=False):
             return data, length
 
 
-class ONINetCDFLoader(Dataset):
-    def __init__(self, data_root, data_in_names, data_in_types, data_in_sizes, data_out_names, data_out_types,
-                 data_out_sizes, ensembles, ssis, action="test"):
-        super(ONINetCDFLoader, self).__init__()
-
-        self.data_in_types = data_in_types
-        self.data_out_types = data_out_types
-        self.n_ensembles = len(ensembles)
-        self.ssis = ssis
-        self.action = action
-
-        self.input, self.gt_oni, self.input_oni = [], [], []
-
-        assert len(data_in_names) == len(data_in_types) == len(data_in_sizes)
-
-        if action == "test":
-            assert len(data_out_names) == len(data_out_types) == len(data_out_sizes)
-
-        for i in range(len(data_in_names)):
-            data_in = []
-            for ensemble in ensembles:
-                data_path = '{:s}/input/{}/{}_ens{}.nc'.format(data_root, data_in_types[i], data_in_names[i], ensemble)
-                data, _ = load_netcdf(data_path, data_in_names[i], data_in_types[i], data_in_sizes[i])
-                data = data[-cfg.prediction_range-cfg.time_steps:-cfg.prediction_range, :, :]
-                data_in.append(data)
-            self.input.append(data_in)
-
-        for i in range(len(data_out_names)):
-            gt_oni = []
-            input_oni = []
-            for ensemble in ensembles:
-                gt_ssi_data = []
-                input_ssi_data = []
-                for ssi in ssis:
-                    if action == "test":
-                        if ssi % 1 == 0:
-                            data_path = '{:s}/output/ssi{}/{}{}.nc'.format(data_root, int(ssi), data_out_names[0], ensemble)
-                        else:
-                            data_path = '{:s}/output/ssi{}/{}{}.nc'.format(data_root, ssi, data_out_names[0], ensemble)
-                    else:
-                        data_path = '{:s}/output/ssi{}/{}{}.nc'.format(data_root, 0, data_out_names[0], ensemble)
-                    data, _ = load_netcdf(data_path, data_out_names[0], data_out_types[0], data_out_sizes[0])
-                    input_ssi_data.append(data[-cfg.prediction_range - cfg.time_steps:-cfg.prediction_range])
-                    gt_ssi_data.append(data[-cfg.prediction_range:])
-                gt_oni.append(gt_ssi_data)
-                input_oni.append(input_ssi_data)
-            self.gt_oni.append(gt_oni)
-            self.input_oni.append(input_oni)
-
-        if cfg.normalization:
-            self.img_normalizer = DataNormalizer(self.input, cfg.normalization)
-        self.input_oni_mean = torch.mean(torch.from_numpy(np.nan_to_num(self.input_oni)), dim=1)
-
-    def __getitem__(self, index):
-        # determine ssi and ensemble
-        ssi_index, ensemble_index = divmod(index, self.n_ensembles)
-
-        input_data, gt_oni_data, input_oni_data = [], [], []
-        for i in range(len(self.data_in_types)):
-            data = torch.from_numpy(np.nan_to_num(self.input[i][ensemble_index]))
-            if cfg.normalization:
-                data = self.img_normalizer.normalize(data, i)
-            input_data += [data]
-
-        for i in range(len(self.data_out_types)):
-            data = torch.from_numpy(np.nan_to_num(self.gt_oni[i][ensemble_index][ssi_index]))
-            gt_oni_data += [data]
-            data = torch.from_numpy(np.nan_to_num(self.input_oni[i][ensemble_index][ssi_index]))
-            input_oni_data += [data]
-
-        input_data = torch.stack(input_data)
-        # merge var and time dimensions
-        input_data = input_data.view(*input_data.shape[:0], -1, *input_data.shape[2:])
-        input_oni_data = torch.squeeze(torch.stack(input_oni_data))
-
-        if cfg.prediction_mean:
-            gt_oni_data = self.gt_oni_mean[0][ssi_index]
-        elif cfg.prediction_index:
-            gt_oni_data = torch.stack(gt_oni_data)[:, cfg.prediction_index, :, :]
-        else:
-            gt_oni_data = torch.stack(gt_oni_data)
-
-        if self.action == "random":
-            return torch.randn(input_data.shape), gt_oni_data.squeeze(), torch.randn(input_oni_data.shape), torch.tensor([self.ssis[ssi_index]])
-        else:
-            if cfg.add_noise:
-                return input_data + (0.1 ** 0.5) * torch.randn(input_data.shape) / 100, gt_oni_data.squeeze(),\
-                       input_oni_data + (0.1 ** 0.5) * torch.randn(input_oni_data.shape) / 100,\
-                       torch.tensor([self.ssis[ssi_index]])
-            else:
-                return input_data, gt_oni_data.squeeze(), input_oni_data, torch.tensor([self.ssis[ssi_index]])
-
-    def __len__(self):
-        return self.n_ensembles * len(self.ssis)
-
-
-class LocationNetCDFLoader(Dataset):
+class NetCDFLoader(Dataset):
     def __init__(self, data_root, data_in_names, data_in_types, data_in_sizes, ensembles, ssis, locations, norm_to_ssi):
-        super(LocationNetCDFLoader, self).__init__()
+        super(NetCDFLoader, self).__init__()
 
         self.data_in_names = data_in_names
         self.locations = locations
@@ -308,4 +212,4 @@ class LocationNetCDFLoader(Dataset):
         return input_data, input_labels, torch.tensor(self.input_ssis[index]), torch.tensor(self.input_ensembles[index])
 
     def __len__(self):
-        return self.length #self.n_ensembles * len(self.ssis) * len(self.locations)
+        return self.length
