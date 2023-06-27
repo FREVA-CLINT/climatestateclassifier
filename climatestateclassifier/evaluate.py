@@ -14,9 +14,9 @@ from .utils.plot_utils import plot_single_predictions, plot_explanations, \
     plot_mean_explanations, plot_class_predictions, plot_ssi_predictions, plot_prediction_overview
 
 
-def create_location_prediction(model, val_ensembles):
+def create_prediction(model, val_ensembles):
     dataset = NetCDFLoader(cfg.data_root_dir, cfg.in_names, cfg.in_types, cfg.in_sizes, val_ensembles,
-                           cfg.val_ssis, cfg.locations, cfg.norm_to_ssi)
+                           cfg.val_ssis, cfg.classes, cfg.norm_to_ssi)
     data = []
     data_raw = []
     for i in range(4):
@@ -89,7 +89,7 @@ def evaluate(arg_file=None, prog_func=None):
                     if cfg.plot_single_explanations or cfg.plot_mean_explanations:
                         model = lrp.converter.convert_net(model).to(cfg.device)
                     single_predictions, single_labels, single_ssis, single_ensembles, dims, single_explanation,\
-                        input_raw = create_location_prediction(model, val_ensembles)
+                        input_raw = create_prediction(model, val_ensembles)
                     predictions.append(single_predictions)
                     labels.append(single_labels)
                     ssis.append(single_ssis)
@@ -116,7 +116,7 @@ def evaluate(arg_file=None, prog_func=None):
                 if cfg.plot_single_explanations or cfg.plot_mean_explanations:
                     model = lrp.converter.convert_net(model).to(cfg.device)
                 predictions, labels, ssis, ensembles, dims, explanations, \
-                    inputs_raw = create_location_prediction(model, cfg.val_ensembles)
+                    inputs_raw = create_prediction(model, cfg.val_ensembles)
 
         if cfg.plot_prediction_overview:
             plot_prediction_overview(predictions, labels, eval_name="{}".format(cfg.eval_names[i_model]))
