@@ -1,7 +1,5 @@
 import numpy as np
-import torch
 from torchvision import transforms
-from .. import config as cfg
 
 
 def data_normalization(data):

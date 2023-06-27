@@ -1,9 +1,9 @@
 from torch import nn
 
 
-class LocationDecoder(nn.Module):
+class Decoder(nn.Module):
     def __init__(self, encoder_out_dim, decoder_dims, n_classes=3):
-        super(LocationDecoder, self).__init__()
+        super(Decoder, self).__init__()
 
         layers = [nn.Flatten(), nn.Linear(encoder_out_dim, decoder_dims[0])]
         dims = decoder_dims + [n_classes]
