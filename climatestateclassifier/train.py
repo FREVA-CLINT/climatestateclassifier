@@ -1,18 +1,15 @@
 import os
 
 import torch
-import torch.nn as nn
 import torch.multiprocessing
+import torch.nn as nn
 from tensorboardX import SummaryWriter
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .loss.loss import CELoss
+from . import config as cfg
 from .model.decoder import Decoder
 from .model.encoder import Encoder
-from . import config as cfg
-from .loss.get_loss import get_loss
 from .model.net import ClassificationNet
 from .utils.io import load_ckpt, save_ckpt
 from .utils.netcdfloader import NetCDFLoader, InfiniteSampler
