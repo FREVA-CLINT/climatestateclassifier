@@ -13,10 +13,10 @@ from matplotlib.colors import ListedColormap
 from .. import config as cfg
 
 
-def plot_prediction_overview(predictions, labels, eval_name):
+def plot_prediction_overview(outputs, labels, eval_name):
     # Clean predictions
-    indices = predictions.argmax(1)
-    cleaned_predictions = torch.zeros(predictions.shape).scatter(1, indices.unsqueeze(1), 1.0)
+    indices = outputs.argmax(1)
+    cleaned_predictions = torch.zeros(outputs.shape).scatter(1, indices.unsqueeze(1), 1.0)
     labels = labels.int()
 
     total_numbers = []
@@ -24,28 +24,20 @@ def plot_prediction_overview(predictions, labels, eval_name):
     correct_predictions = []
     false_predictions = []
     metric = torchmetrics.classification.BinaryStatScores()
-    for i in range(len(cfg.locations)):
+    for i in range(len(cfg.labels)):
         total_numbers.append(torch.sum(labels[:, i]).int().item())
         total_numbers_predictions.append(torch.sum(cleaned_predictions[:, i]).int().item())
         correct_predictions.append(metric(cleaned_predictions[:, i], labels[:, i])[0].item())
         false_predictions.append(metric(cleaned_predictions[:, i], labels[:, i])[1].item())
-    accuracy = torchmetrics.functional.accuracy(cleaned_predictions.int(), labels.int(), task='multilabel')
+    accuracy = torchmetrics.functional.accuracy(cleaned_predictions.int(), labels.int(), task='multilabel',
+                                                num_labels=len(cfg.labels))
 
     fig, ax = plt.subplots()
     fig.patch.set_visible(False)
     ax.axis('off')
     ax.axis('tight')
 
-    column_names = []
-    for loc in cfg.locations:
-        if loc == 'nh':
-            column_names.append("Northern Hemisphere")
-        elif loc == 'sh':
-            column_names.append("Southern Hemisphere")
-        elif loc == 'ne':
-            column_names.append("No Eruption")
-        else:
-            column_names.append("Tropics")
+    column_names = [label_name for label_name in cfg.label_names]
     column_names.append("$\\bf{Total}$")
     total_numbers.append(sum(total_numbers))
     total_numbers_predictions.append(sum(total_numbers_predictions))
@@ -80,17 +72,17 @@ def plot_prediction_overview(predictions, labels, eval_name):
     plt.clf()
 
 
-def plot_single_predictions(predictions, labels, ssis, ensembles, eval_name):
+def plot_single_predictions(outputs, labels, ssis, ensembles, eval_name):
     # Clean predictions
-    pred_indices = predictions.argmax(1)
+    pred_indices = outputs.argmax(1)
     gt_indices = labels.argmax(1)
 
     prediction_labels = []
     gt_labels = []
     prediction_colors = []
     for i in range(pred_indices.shape[0]):
-        gt_labels.append(get_class_from_index(gt_indices[i]))
-        prediction_labels.append(get_class_from_index(pred_indices[i]))
+        gt_labels.append(cfg.label_names[gt_indices[i]])
+        prediction_labels.append(cfg.label_names[pred_indices[i]])
         if gt_labels[-1] == prediction_labels[-1]:
             prediction_colors.append(['white', 'white', 'white', 'lightgreen'])
         else:
@@ -124,7 +116,7 @@ def plot_class_predictions(predictions, labels, eval_name):
     pred_indices = predictions.argmax(1)
     gt_indices = labels.argmax(1)
 
-    class_predictions = [[0 for j in range(len(cfg.locations))] for i in range(len(cfg.locations))]
+    class_predictions = [[0 for j in range(len(cfg.labels))] for i in range(len(cfg.labels))]
     for i in range(pred_indices.shape[0]):
         class_predictions[gt_indices[i]][pred_indices[i]] += 1
 
@@ -134,11 +126,11 @@ def plot_class_predictions(predictions, labels, eval_name):
     ax.axis('tight')
     prediction_colors = []
 
-    d = {' ': [get_class_from_index(i) for i in range(len(cfg.locations))]}
+    d = {' ': cfg.label_names}
 
-    for i in range(len(cfg.locations)):
-        d['{}'.format(get_class_from_index(i))] = class_predictions[i]
-        prediction_colors.append(["#002f4a"] + len(cfg.locations) * ['red'])
+    for i in range(len(cfg.labels)):
+        d['{}'.format(cfg.label_names[i])] = class_predictions[i]
+        prediction_colors.append(["#002f4a"] + len(cfg.labels) * ['red'])
         prediction_colors[i][i + 1] = 'green'
 
     df = pd.DataFrame(data=d)
@@ -164,17 +156,17 @@ def plot_ssi_predictions(predictions, labels, ssis, eval_name):
     pred_indices = predictions.argmax(1)
     gt_indices = labels.argmax(1)
 
-    class_predictions = [[0 for j in range(len(cfg.locations) * len(cfg.val_ssis))] for i in range(len(cfg.locations))]
+    class_predictions = [[0 for j in range(len(cfg.labels) * len(cfg.val_ssis))] for i in range(len(cfg.labels))]
     for i in range(len(cfg.val_ssis)):
         for k in range(gt_indices.shape[0]):
             if cfg.val_ssis[i] == ssis[k]:
-                class_predictions[gt_indices[k]][pred_indices[k] + (i * len(cfg.locations))] += (
-                    (1.0 / len(cfg.val_ensembles)) if ssis[k] != 0.0 else 1.0 / len(cfg.val_ensembles))
+                class_predictions[gt_indices[k]][pred_indices[k] + (i * len(cfg.labels))] += (
+                    (1.0 / len(cfg.val_samples)) if ssis[k] != 0.0 else 1.0 / len(cfg.val_samples))
 
     for i in range(len(class_predictions)):
         for j in range(len(class_predictions[i])):
-            if ((j < len(cfg.locations) and i < len(cfg.locations) - 1 and 0.0 in cfg.val_ssis) or (
-                    i == len(cfg.locations) - 1 and j > len(cfg.locations) - 1)) and "ne" in cfg.locations:
+            if ((j < len(cfg.labels) and i < len(cfg.labels) - 1 and 0.0 in cfg.val_ssis) or (
+                    i == len(cfg.labels) - 1 and j > len(cfg.labels) - 1)) and "ne" in cfg.labels:
                 class_predictions[i][j] = ""
             else:
                 class_predictions[i][j] = "{} %".format(
@@ -190,26 +182,26 @@ def plot_ssi_predictions(predictions, labels, ssis, eval_name):
     ssi_labels = []
     class_labels = []
     for i in range(len(cfg.val_ssis)):
-        for j in range(len(cfg.locations)):
+        for j in range(len(cfg.labels)):
             ssi_labels.append("{}".format(cfg.val_ssis[i]))
-            class_labels.append("{}".format(get_class_from_index(j)))
+            class_labels.append("{}".format(cfg.label_names[j]))
     d = {'SSI': ssi_labels,
          'Location': class_labels}
 
     prediction_colors = []
 
-    for i in range(len(cfg.locations)):
-        d['{}'.format(get_class_from_index(i))] = class_predictions[i]
+    for i in range(len(cfg.labels)):
+        d['{}'.format(cfg.label_names[i])] = class_predictions[i]
 
     for i in range(len(class_labels)):
         row_colors = 2 * ["#002f4a"]
-        for j in range(len(cfg.locations)):
+        for j in range(len(cfg.labels)):
             if class_predictions[j][i] == "0 %":
                 row_colors.append('white')
             elif class_predictions[j][i] == "":
                 row_colors.append('gray')
             else:
-                if class_labels[i] == get_class_from_index(j):
+                if class_labels[i] == cfg.label_names[j]:
                     row_colors.append('green')
                 else:
                     row_colors.append('red')
@@ -265,18 +257,17 @@ def plot_single_explanation(explanations, explanation_name, ax, dims, pad=0.13):
         cb.ax.set_title("{}".format("Relevance (unitless)"), fontsize=5)
 
 
-def plot_explanations(raw_input, dims, gt, predictions, ensembles, ssis, all_explanations, eval_name):
-    raw_input = torch.stack(torch.split(raw_input, cfg.time_steps if not cfg.mean_input else 1, dim=1), dim=1)
-    for i in range(raw_input.shape[0]):
+def plot_explanations(inputs, dims, gt, outputs, ensembles, ssis, all_explanations, eval_name):
+    for i in range(inputs.shape[0]):
         n_rows = cfg.time_steps if not cfg.mean_input else 1
-        n_cols = len(cfg.in_names) * (len(cfg.explanation_names) + 1) + 1
+        n_cols = len(cfg.data_types) * (len(cfg.explanation_names) + 1) + 1
         fig, ax = plt.subplots(n_rows, n_cols, figsize=(1.5 * n_cols + 1.5, n_rows * 1.25),
                                subplot_kw={"projection": ccrs.Robinson()}, squeeze=False)
 
         gt_index = torch.argmax(gt[i])
-        gt_class = get_class_from_index(gt_index)
-        pred_index = torch.argmax(predictions[i])
-        pred_class = get_class_from_index(pred_index)
+        gt_class = cfg.label_names[gt_index]
+        pred_index = torch.argmax(outputs[i])
+        pred_class = cfg.label_names[pred_index]
 
         # Create data frame for table
         d = {'$\\bf{Label}$': ["Ground Truth", "Prediction"]}
@@ -298,16 +289,14 @@ def plot_explanations(raw_input, dims, gt, predictions, ensembles, ssis, all_exp
         for k in range(len(d.keys())):
             table[(0, k)].get_text().set_color('white')
 
-        months = ["June", "July", "August"]
-
         # Plot inputs
-        for time in range(raw_input.shape[2]):
+        for time in range(inputs.shape[1]):
             ax[time, 0].axis('off')
             ax[time, 0].axis('tight')
-            for var in range(raw_input.shape[1]):
+            for var in range(inputs.shape[2]):
                 vmin = -3#torch.min(raw_input[i, var]) / 2
                 vmax = -vmin
-                if cfg.in_types[var] == 'pr':
+                if cfg.data_types[var] == 'pr':
                     cmap = "RdBu"
                 else:
                     cmap = "RdBu_r"
@@ -319,7 +308,7 @@ def plot_explanations(raw_input, dims, gt, predictions, ensembles, ssis, all_exp
                 ax[time, col].add_feature(cartopy.feature.BORDERS, edgecolor="black", linestyle="--", linewidth=0.3)
 
                 plot = ax[time, col].pcolormesh(dims["lon"], dims["lat"],
-                                                raw_input[i][var, time, :, :].detach().numpy(),
+                                                inputs[i][time, var, :, :].detach().numpy(),
                                                 cmap=cmap, transform=ccrs.PlateCarree(), shading='auto', vmin=vmin,
                                                 vmax=vmax, linewidth=0, rasterized=True)
                 cb = plt.colorbar(plot, location="bottom", ax=ax[time, col], fraction=0.09, pad=0.2)
@@ -333,79 +322,8 @@ def plot_explanations(raw_input, dims, gt, predictions, ensembles, ssis, all_exp
 
         fig.tight_layout()
         fig.savefig(
-            '{}/explanation/single/{}{}ssi{}{}.jpg'.format(cfg.eval_dir, eval_name, ssis[i], ensembles[i],
-                                                           gt_class.replace(' ', '')),
+            '{}/explanations/{}{}ssi{}{}.jpg'.format(cfg.eval_dir, eval_name, ssis[i], ensembles[i],
+                                                     gt_class.replace(' ', '')),
             dpi=800)
         plt.close(fig)
         plt.clf()
-
-
-def plot_mean_explanations(raw_input, dims, gt, all_explanations, eval_name):
-    plt.rcParams.update({'font.size': 20})
-    raw_input = torch.stack(torch.split(raw_input, cfg.time_steps if not cfg.mean_input else 1, dim=1), dim=1)
-    # get indices for every class
-    mean_inputs = []
-    mean_explanations = []
-    for i in range(len(cfg.locations)):
-        input_class = torch.zeros(len(cfg.locations))
-        input_class[i] = 1
-        mask = (gt == input_class.unsqueeze(0)).all(dim=1)
-        indices = mask.nonzero().squeeze(1)
-        mean_inputs.append(torch.mean(raw_input.index_select(index=indices, dim=0), dim=0))
-        mean_explanations.append(torch.mean(all_explanations.index_select(index=indices, dim=1), dim=1))
-    if cfg.mean_input:
-        months = ["JJA Mean"]
-    else:
-        months = ["June", "July", "August"]
-    for iGRAP in range(len(mean_inputs)):
-        n_rows = cfg.time_steps if not cfg.mean_input else 1
-        n_cols = len(cfg.in_names) * (len(cfg.explanation_names) + 1)
-        fig, ax = plt.subplots(n_rows, n_cols, figsize=(2. * n_cols, n_rows * 2),
-                               subplot_kw={"projection": ccrs.Robinson()}, squeeze=False)
-        # Plot inputs
-        for time in range(mean_inputs[i].shape[1]):
-            for var in range(mean_inputs[i].shape[0]):
-                vmin = -3#torch.min(raw_input[i, var]) / 2
-                vmax = -vmin
-                if cfg.in_types[var] == 'pr':
-                    cmap = "RdBu"
-                else:
-                    cmap = "RdBu_r"
-                col = var * (len(cfg.explanation_names) + 1)
-                gl = ax[time, col].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
-                gl.top_labels = False
-                gl.right_labels = False
-                ax[time, col].add_feature(cartopy.feature.COASTLINE, edgecolor="black", linewidth=0.3)
-                ax[time, col].add_feature(cartopy.feature.BORDERS, edgecolor="black", linestyle="--", linewidth=0.3)
-
-                plot = ax[time, col].pcolormesh(dims["lon"], dims["lat"],
-                                                mean_inputs[i][var, time, :, :].detach().numpy(),
-                                                cmap=cmap, transform=ccrs.PlateCarree(), shading='auto', vmin=vmin,
-                                                vmax=vmax, linewidth=0, rasterized=True)
-                cb = plt.colorbar(plot, location="bottom", ax=ax[time, col], fraction=0.09, pad=0.13)
-                cb.ax.tick_params(labelsize=5)
-                cb.ax.ticklabel_format(useOffset=True, style='plain')
-                cb.ax.set_title("{}".format("Sea Surface Temperature Anomaly (°C)"), fontsize=5)
-        for exp in range(mean_explanations[i].shape[0]):
-            for var in range(all_explanations.shape[2]):
-                plot_single_explanation(mean_explanations[i][exp, var], cfg.explanation_names[exp],
-                                        ax[:, var * (mean_explanations[i].shape[0] + 1) + exp + 1], dims)
-
-        fig.tight_layout()
-        fig.savefig(
-            '{}/explanation/mean/{}_{}.png'.format(cfg.eval_dir, eval_name, get_class_from_index(i)),
-            dpi=800, bbox_inches='tight')
-        plt.close(fig)
-        plt.clf()
-
-
-def get_class_from_index(index):
-    gt_class = cfg.locations[index]
-    if gt_class == 'nh':
-        return "Northern Hemisphere"
-    elif gt_class == 'sh':
-        return "Southern Hemisphere"
-    elif gt_class == 'ne':
-        return "No Eruption"
-    else:
-        return "Tropics"

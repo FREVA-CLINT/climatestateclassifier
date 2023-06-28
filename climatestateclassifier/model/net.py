@@ -1,17 +1,18 @@
 from torch import nn
+from .encoder import Encoder
+from .decoder import Decoder
+
 from .. import config as cfg
 
 
 class ClassificationNet(nn.Module):
-    def __init__(self, encoder, decoder, img_size=512, in_channels=1, encoding_layers=6, stride=(2, 2), bn=True,
-                 activation=True):
+    def __init__(self, img_sizes, in_channels, enc_dims, dec_dims, stride=(1, 1), bn=False,
+                 activation=True, n_classes=2):
         super(ClassificationNet, self).__init__()
-        encoder_out_dim = int(img_size // 2 ** (-2)) * ((img_size // (2 ** encoding_layers)) ** 2)
-
-        self.encoder = encoder(img_size=img_size, in_channels=in_channels, n_layers=encoding_layers,
-                               stride=stride, bn=bn, activation=activation)
-        self.decoder = decoder(encoder_out_dim=encoder_out_dim, decoder_dims=cfg.decoder_dims,
-                               n_classes=len(cfg.classes))
+        enc_out_dim = (img_sizes[0] // (2 ** len(enc_dims)) * (img_sizes[1] // (2 ** len(enc_dims)))) * enc_dims[-1]
+        self.encoder = Encoder(encoder_dims=enc_dims, in_channels=in_channels, stride=stride, bn=bn,
+                               activation=activation)
+        self.decoder = Decoder(encoder_out_dim=enc_out_dim, decoder_dims=dec_dims, n_classes=n_classes)
 
     def forward(self, input):
         # create lists for skip connections

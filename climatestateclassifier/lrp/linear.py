@@ -1,5 +1,5 @@
 import torch
-from .functional import linear
+from .functional.linear import linear
 
 
 class Linear(torch.nn.Linear):

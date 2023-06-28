@@ -1,6 +1,7 @@
 import torch
 
-from . import Linear, Conv2d
+from .linear import Linear
+from .conv import Conv2d
 from .maxpool import MaxPool2d
 from .functional.utils import normalize
 
