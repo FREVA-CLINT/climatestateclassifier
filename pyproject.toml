@@ -49,4 +49,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 climclass-train = "climatestateclassifier.train:train"
-climclass-evaluate = "climatestateclassifier.train:train"
+climclass-evaluate = "climatestateclassifier.evaluate:evaluate"

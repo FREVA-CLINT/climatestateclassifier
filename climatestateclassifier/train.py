@@ -8,8 +8,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from . import config as cfg
-from .model.decoder import Decoder
-from .model.encoder import Encoder
 from .model.net import ClassificationNet
 from .utils.io import load_ckpt, save_ckpt
 from .utils.netcdfloader import NetCDFLoader, InfiniteSampler
@@ -29,18 +27,18 @@ def train(arg_file=None):
     if not os.path.exists(cfg.log_dir):
         os.makedirs(cfg.log_dir)
 
-    if not cfg.rotate_ensembles:
+    if not cfg.rotate_samples:
         torch.cuda.empty_cache()
-        start_training_cycle(cfg.train_ensembles, cfg.val_ensembles)
+        start_training_cycle(cfg.train_samples, cfg.val_samples)
     else:
         for i in range(cfg.resume_rotation,
-                       min(cfg.resume_rotation + cfg.max_rotations, cfg.resume_rotation + len(cfg.train_ensembles))):
-            val_ensembles = set(cfg.train_ensembles[i:i+1])
-            train_ensembles = set(cfg.train_ensembles) - val_ensembles
-            start_training_cycle(list(train_ensembles), list(val_ensembles), i)
+                       min(cfg.resume_rotation + cfg.max_rotations, cfg.resume_rotation + len(cfg.train_samples))):
+            val_samples = set(cfg.train_samples[i:i+1])
+            train_samples = set(cfg.train_samples) - val_samples
+            start_training_cycle(list(train_samples), list(val_samples), i)
 
 
-def start_training_cycle(train_ensembles, val_ensembles, rotation=None):
+def start_training_cycle(train_samples, val_samples, rotation=None):
     if rotation is not None:
         rotation_string = 'rotation_{}'.format(rotation)
     else:
@@ -49,25 +47,22 @@ def start_training_cycle(train_ensembles, val_ensembles, rotation=None):
     writer = SummaryWriter(log_dir='{}/{}'.format(cfg.log_dir, rotation_string))
 
     # create data sets
-    dataset_train = NetCDFLoader(cfg.data_root_dir, cfg.in_names, cfg.in_types, cfg.in_sizes, train_ensembles,
-                                 cfg.train_ssis, cfg.classes, cfg.norm_to_ssi)
-    dataset_val = NetCDFLoader(cfg.data_root_dir, cfg.in_names, cfg.in_types, cfg.in_sizes, val_ensembles,
-                               cfg.val_ssis, cfg.classes, cfg.norm_to_ssi)
+    dataset_train = NetCDFLoader(cfg.data_root_dir, cfg.data_types, train_samples,
+                                 cfg.train_ssis, cfg.labels, cfg.norm_to_ssi)
+    dataset_val = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples,
+                               cfg.val_ssis, cfg.labels, cfg.norm_to_ssi)
 
     iterator_train = iter(DataLoader(dataset_train, batch_size=cfg.batch_size,
                                      sampler=InfiniteSampler(len(dataset_train)),
                                      num_workers=cfg.n_threads))
 
-    encoder = Encoder
-    decoder = Decoder
+    in_channels = len(cfg.data_types) if cfg.mean_input else len(cfg.data_types) * cfg.time_steps
 
-    if cfg.mean_input:
-        in_channels = len(cfg.in_names)
-    else:
-        in_channels = len(cfg.in_names) * cfg.time_steps
-
-    model = ClassificationNet(encoder, decoder, img_size=cfg.in_sizes[0], in_channels=in_channels,
-                              encoding_layers=cfg.encoding_layers, stride=(1, 1), bn=False).to(cfg.device)
+    model = ClassificationNet(img_sizes=dataset_train.img_sizes[0],
+                              in_channels=in_channels,
+                              enc_dims=cfg.encoder_dims,
+                              dec_dims=cfg.decoder_dims,
+                              n_classes=len(cfg.labels)).to(cfg.device)
 
     # define optimizer and loss functions
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=cfg.lr)
@@ -84,9 +79,6 @@ def start_training_cycle(train_ensembles, val_ensembles, rotation=None):
             param_group['lr'] = cfg.lr
         print('Starting from iter ', start_iter)
 
-    if cfg.multi_gpus:
-        model = torch.nn.DataParallel(model)
-
     pbar = tqdm(range(start_iter, cfg.max_iter))
     for i in pbar:
 
@@ -94,9 +86,9 @@ def start_training_cycle(train_ensembles, val_ensembles, rotation=None):
 
         # train model
         model.train()
-        input, input_classes, _, _ = [x.to(cfg.device) for x in next(iterator_train)]
+        input, labels, _, _ = [x.to(cfg.device) for x in next(iterator_train)]
         output = model(input)
-        train_loss = criterion(output, input_classes)
+        train_loss = criterion(output, labels)
 
         optimizer.zero_grad()
         train_loss.backward()
@@ -111,6 +103,7 @@ def start_training_cycle(train_ensembles, val_ensembles, rotation=None):
 
             with torch.no_grad():
                 output = model(val_input)
+
             val_loss = criterion(output, val_input_classes)
             writer.add_scalar("train-loss", i+1, train_loss.item())
             writer.add_scalar("val-loss", i+1, val_loss.item())

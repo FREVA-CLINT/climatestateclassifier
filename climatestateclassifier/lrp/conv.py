@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from .functional import conv2d
+from .functional.conv import conv2d
 from climatestateclassifier.model.encoder import bound_pad
 from climatestateclassifier import config as cfg
 

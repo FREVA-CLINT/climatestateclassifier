@@ -43,16 +43,16 @@ class EncoderBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, img_size, in_channels, n_layers, stride=(2, 2), bn=True, activation=True):
+    def __init__(self, encoder_dims, in_channels, stride=(2, 2), bn=True, activation=True):
         super(Encoder, self).__init__()
 
         # initialize channels
-        channels = [int(img_size // 2 ** (n_layers - i - 3)) for i in range(n_layers)]
-        channels.insert(0, in_channels)
+        encoder_dims.insert(0, in_channels)
 
         layers = []
-        for i in range(n_layers):
-            layers.append(EncoderBlock(channels[i], channels[i + 1], stride=stride, bn=bn, activation=activation))
+        for i in range(len(encoder_dims) - 1):
+            layers.append(EncoderBlock(encoder_dims[i], encoder_dims[i + 1], stride=stride, bn=bn,
+                                       activation=activation))
         self.main = nn.ModuleList(layers)
 
     def forward(self, input):
