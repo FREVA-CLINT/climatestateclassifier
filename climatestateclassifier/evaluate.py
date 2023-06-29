@@ -24,8 +24,8 @@ def create_prediction(model_name, val_samples):
     in_channels = len(cfg.data_types) if cfg.mean_input else len(cfg.data_types) * cfg.time_steps
     model = ClassificationNet(img_sizes=dataset.img_sizes[0],
                               in_channels=in_channels,
-                              enc_dims=cfg.encoder_dims,
-                              dec_dims=cfg.decoder_dims,
+                              enc_dims=[dim for dim in cfg.encoder_dims],
+                              dec_dims=[dim for dim in cfg.decoder_dims],
                               n_classes=len(cfg.labels)).to(cfg.device)
 
     load_ckpt(model_name, [('model', model)], cfg.device)
