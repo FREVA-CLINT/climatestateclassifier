@@ -45,7 +45,7 @@ def create_prediction(model_name, val_samples):
             for key in ("time", "lon", "lat"):
                 if key in dim:
                     dims[key] = coords[dim].values
-        explanations = generate_explanations(model, input.to(cfg.device))
+        explanations = generate_explanations(model, input.to(cfg.device)).to(torch.device('cpu'))
 
     # renormalize input data
     input = torch.stack(torch.split(input, len(cfg.data_types), dim=1), dim=1)
