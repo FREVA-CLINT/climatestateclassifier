@@ -116,7 +116,7 @@ class NetCDFLoader(Dataset):
                         data_in.append(data)
                         if i == 0:
                             input_class = np.zeros(len(labels))
-                            input_class[labels.index(cfg.gt_locations[y])] = 1
+                            input_class[labels.index(cfg.gt_classes[y])] = 1
                             self.input_labels.append(input_class)
                             self.input_ssis.append(ssi)
                             self.input_samples.append(sample)
@@ -141,7 +141,7 @@ class NetCDFLoader(Dataset):
                     data_in.append(data)
                     if i == 0:
                         input_class = np.zeros(len(labels))
-                        input_class[labels.index(cfg.gt_locations[y])] = 1
+                        input_class[labels.index(cfg.gt_classes[y])] = 1
                         self.input_labels.append(input_class)
                         self.input_ssis.append(ssi)
                         self.input_samples.append(int(cfg.eval_years[y]))
