@@ -60,8 +60,8 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
     model = ClassificationNet(img_sizes=dataset_train.img_sizes[0],
                               in_channels=in_channels,
-                              enc_dims=cfg.encoder_dims,
-                              dec_dims=cfg.decoder_dims,
+                              enc_dims=[dim for dim in cfg.encoder_dims],
+                              dec_dims=[dim for dim in cfg.decoder_dims],
                               n_classes=len(cfg.labels)).to(cfg.device)
 
     # define optimizer and loss functions
