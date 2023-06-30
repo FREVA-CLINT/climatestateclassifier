@@ -1,4 +1,5 @@
 import os
+from os.path import exists
 
 import numpy as np
 import torch
@@ -78,99 +79,39 @@ def load_netcdf(data_paths, data_types, keep_dss=False):
 
 
 class NetCDFLoader(Dataset):
-    def __init__(self, data_root, data_types, samples, categories, labels):
+    def __init__(self, data_root, data_types, sample_names, sample_categories, labels):
         super(NetCDFLoader, self).__init__()
 
         self.labels = labels
-        self.categories = categories
-        self.n_samples = len(samples)
+        self.categories = sample_categories
+        self.n_samples = len(sample_names)
         self.data_types = data_types
         self.input, self.input_labels, self.sample_categories, self.sample_names = [], [], [], []
 
         self.xr_dss = None
 
-        if cfg.experiment == 'historical':
-            for i in range(len(data_types)):
-                data_in = []
-                for sample in samples:
-                    for y in range(len(cfg.eval_years)):
-                        category = "7.5"
-                        data_path = '{:s}/dghistge{}_echam6_BOT_mm_{}_{}-{}.nc'.format(data_root,
-                                                                                       sample,
-                                                                                       data_types[i],
-                                                                                       int(cfg.eval_years[y]) - 1,
-                                                                                       int(cfg.eval_years[y]) + 2)
-
-                        if self.xr_dss is not None:
-                            data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]])
-                        else:
-                            self.xr_dss, data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]],
-                                                                               keep_dss=True)
-
-                        if cfg.mean_input:
-                            data = np.expand_dims(np.mean(data, axis=0), axis=0)
-                        data_in.append(data)
-                        if i == 0:
-                            input_class = np.zeros(len(labels))
-                            input_class[labels.index(cfg.gt_classes[y])] = 1
-                            self.input_labels.append(input_class)
-                            self.sample_categories.append(category)
-                            self.sample_names.append(sample)
-                self.input.append(data_in)
-        elif cfg.experiment:
-            for i in range(len(data_types)):
-                data_in = []
-                for y in range(len(cfg.eval_years)):
-
-                    category = "7.5"
-                    data_path = '{:s}/{}.nc'.format(data_root, cfg.eval_years[y])
-
-                    if self.xr_dss is not None:
-                        data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]])
-                    else:
-                        self.xr_dss, data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]], keep_dss=True)
-
-                    data_in.append(data)
-                    if i == 0:
-                        input_class = np.zeros(len(labels))
-                        input_class[labels.index(cfg.gt_classes[y])] = 1
-                        self.input_labels.append(input_class)
-                        self.sample_categories.append(category)
-                        self.sample_names.append(int(cfg.eval_years[y]))
-                self.input.append(data_in)
-        else:
-            for i in range(len(data_types)):
-                data_in = []
-                for j in range(len(self.labels)):
-                    for category in categories:
-                        for sample in samples:
-                            if category == "0":
-                                years = cfg.train_years
+        for i in range(len(data_types)):
+            input_data = []
+            for name in sample_names:
+                for category in sample_categories:
+                    for j in range(len(labels)):
+                        # data names must be in the format: <category_name><sample_name><data_type>
+                        data_path = '{:s}/{}{}{}{}.nc'.format(data_root, category, name, data_types[i], labels[j])
+                        if exists(data_path):
+                            if self.xr_dss is not None:
+                                data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]])
                             else:
-                                years = [cfg.train_years[1]]
-                            for year in years:
-                                if category != "0":
-                                    data_path = '{:s}/deva{}ssi{}{}_echam6_BOT_mm_{}_{}.nc'.format(data_root, category, labels[j], sample, data_types[i], year)
-                                else:
-                                    data_path = '{:s}/deva{}ssi{}_echam6_BOT_mm_{}_{}.nc'.format(data_root, category, sample, data_types[i], year)
-
-                                if (category != "0" and labels[j] != "ne") or (labels[j] == "ne" and category == "0"):
-                                    if self.xr_dss is not None:
-                                        data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]])
-                                    else:
-                                        self.xr_dss, data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]],
-                                                                                           keep_dss=True)
-
-                                    data_in.append(data)
-                                    if i == 0:
-                                        input_class = np.zeros(len(labels))
-                                        input_class[j] = 1
-                                        self.input_labels.append(input_class)
-                                        self.sample_categories.append(category)
-                                        self.sample_names.append(sample)
-
-                self.input.append(data_in)
-
+                                self.xr_dss, data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]],
+                                                                                   keep_dss=True)
+                            input_data.append(data)
+                            if i == 0:
+                                input_class = np.zeros(len(labels))
+                                input_class[j] = 1
+                                self.input_labels.append(input_class)
+                                self.sample_categories.append(category)
+                                self.sample_names.append(name)
+            if input_data:
+                self.input.append(input_data)
         self.length = len(self.input_labels)
 
         if cfg.normalization:
