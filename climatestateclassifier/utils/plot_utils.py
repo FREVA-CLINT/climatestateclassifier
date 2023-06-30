@@ -45,7 +45,7 @@ def plot_prediction_overview(outputs, labels, eval_name):
     false_predictions.append(sum(false_predictions))
 
     d = {
-        '$\\bf{Locations}$': column_names,
+        '$\\bf{Labels}$': column_names,
         '$\\bf{Total Real}$': total_numbers,
         '$\\bf{Total Predictions}$': total_numbers_predictions,
         '$\\bf{Correct Classifications}$': correct_predictions,
@@ -72,7 +72,7 @@ def plot_prediction_overview(outputs, labels, eval_name):
     plt.clf()
 
 
-def plot_single_predictions(outputs, labels, ssis, ensembles, eval_name):
+def plot_single_predictions(outputs, labels, categories, sample_names, eval_name):
     # Clean predictions
     pred_indices = outputs.argmax(1)
     gt_indices = labels.argmax(1)
@@ -94,8 +94,8 @@ def plot_single_predictions(outputs, labels, ssis, ensembles, eval_name):
     ax.axis('tight')
 
     d = {
-        '$\\bf{Ensemble}$': ensembles,
-        '$\\bf{SSI}$': ssis,
+        '$\\bf{Samples}$': sample_names,
+        '$\\bf{Categories}$': categories,
         '$\\bf{Ground Truth}$': gt_labels,
         '$\\bf{Prediction}$': prediction_labels,
     }
@@ -151,21 +151,21 @@ def plot_class_predictions(predictions, labels, eval_name):
     plt.clf()
 
 
-def plot_ssi_predictions(predictions, labels, ssis, eval_name):
+def plot_predictions_by_category(predictions, labels, categories, eval_name):
     # Clean predictions
     pred_indices = predictions.argmax(1)
     gt_indices = labels.argmax(1)
 
-    class_predictions = [[0 for j in range(len(cfg.labels) * len(cfg.val_ssis))] for i in range(len(cfg.labels))]
-    for i in range(len(cfg.val_ssis)):
+    class_predictions = [[0 for j in range(len(cfg.labels) * len(cfg.val_categories))] for i in range(len(cfg.labels))]
+    for i in range(len(cfg.val_categories)):
         for k in range(gt_indices.shape[0]):
-            if cfg.val_ssis[i] == ssis[k]:
+            if cfg.val_categories[i] == categories[k]:
                 class_predictions[gt_indices[k]][pred_indices[k] + (i * len(cfg.labels))] += (
-                    (1.0 / len(cfg.val_samples)) if ssis[k] != 0.0 else 1.0 / len(cfg.val_samples))
+                    (1.0 / len(cfg.val_samples)) if categories[k] != 0.0 else 1.0 / len(cfg.val_samples))
 
     for i in range(len(class_predictions)):
         for j in range(len(class_predictions[i])):
-            if ((j < len(cfg.labels) and i < len(cfg.labels) - 1 and 0.0 in cfg.val_ssis) or (
+            if ((j < len(cfg.labels) and i < len(cfg.labels) - 1 and 0.0 in cfg.val_categories) or (
                     i == len(cfg.labels) - 1 and j > len(cfg.labels) - 1)) and "ne" in cfg.labels:
                 class_predictions[i][j] = ""
             else:
@@ -179,14 +179,14 @@ def plot_ssi_predictions(predictions, labels, ssis, eval_name):
     ax.axis('off')
     ax.axis('tight')
 
-    ssi_labels = []
+    category_labels = []
     class_labels = []
-    for i in range(len(cfg.val_ssis)):
+    for i in range(len(cfg.val_categories)):
         for j in range(len(cfg.labels)):
-            ssi_labels.append("{}".format(cfg.val_ssis[i]))
+            category_labels.append("{}".format(cfg.val_categories[i]))
             class_labels.append("{}".format(cfg.label_names[j]))
-    d = {'SSI': ssi_labels,
-         'Location': class_labels}
+    d = {'Category': category_labels,
+         'Label': class_labels}
 
     prediction_colors = []
 
@@ -221,11 +221,11 @@ def plot_ssi_predictions(predictions, labels, ssis, eval_name):
                 table[(j, i)].get_text().set_color('black')
 
     fig.tight_layout()
-    plt.savefig("{}/overview/{}_ssis.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.savefig("{}/overview/{}_categories.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
-def plot_single_explanation(explanations, explanation_name, ax, dims, pad=0.13):
+def plot_single_explanation(explanations, ax, dims, pad=0.13):
     # color map
     if not cfg.cmap_colors:
         cmap = matplotlib.cm.RdBu
@@ -257,7 +257,7 @@ def plot_single_explanation(explanations, explanation_name, ax, dims, pad=0.13):
         cb.ax.set_title("{}".format("Relevance (unitless)"), fontsize=5)
 
 
-def plot_explanations(inputs, dims, gt, outputs, ensembles, ssis, all_explanations, eval_name):
+def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, all_explanations, eval_name):
     for i in range(inputs.shape[0]):
         n_rows = cfg.time_steps if not cfg.mean_input else 1
         n_cols = len(cfg.data_types) * (len(cfg.explanation_names) + 1) + 1
@@ -276,7 +276,7 @@ def plot_explanations(inputs, dims, gt, outputs, ensembles, ssis, all_explanatio
             pred_colors.append("lightgreen")
         else:
             pred_colors.append("red")
-        key = 'Ens {}, SSI {}'.format(ensembles[i], ssis[i])
+        key = 'Sample {}, Cat {}'.format(sample_names[i], category_names[i])
         key = '$\\bf{' + key + '}$'
         d[key] = [gt_class, pred_class]
         colors = [2 * ['white'], pred_colors]
@@ -317,12 +317,12 @@ def plot_explanations(inputs, dims, gt, outputs, ensembles, ssis, all_explanatio
                 cb.ax.set_title("{}".format("Sea Surface Temperature Anomaly (°C)"), fontsize=5)
         for exp in range(all_explanations.shape[0]):
             for var in range(all_explanations.shape[2]):
-                plot_single_explanation(all_explanations[exp, i, var], cfg.explanation_names[exp],
+                plot_single_explanation(all_explanations[exp, i, var],
                                         ax[:, var * (all_explanations.shape[0] + 1) + exp + 1 + 1], dims, pad=0.2)
 
         fig.tight_layout()
         fig.savefig(
-            '{}/explanations/{}{}ssi{}{}.jpg'.format(cfg.eval_dir, eval_name, ssis[i], ensembles[i],
+            '{}/explanations/{}{}{}{}.jpg'.format(cfg.eval_dir, eval_name, category_names[i], sample_names[i],
                                                      gt_class.replace(' ', '')),
             dpi=800)
         plt.close(fig)

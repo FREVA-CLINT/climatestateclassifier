@@ -20,10 +20,6 @@ def int_list(arg):
     return list(map(int, arg.split(',')))
 
 
-def float_list(arg):
-    return list(map(float, arg.split(',')))
-
-
 def lim_list(arg):
     lim = list(map(float, arg.split(',')))
     assert len(lim) == 2
@@ -81,22 +77,14 @@ def set_common_args():
                                  "custom: normalize with custom define mean and std values")
     arg_parser.add_argument('--val-samples', type=interv_list, default='101,200',
                             help="Comma separated list of samples that are used for validation")
-    arg_parser.add_argument('--val-ssis', type=float_list, default=None,
-                            help="Comma separated list of ssi values that are used for validation")
-    arg_parser.add_argument('--val-colors', type=str_list, default=None,
-                            help="Comma separated list of colors for plotting evaluation graphs")
+    arg_parser.add_argument('--val-categories', type=str_list, default=None,
+                            help="Comma separated list of category values that are used for validation")
     arg_parser.add_argument('--attention-dim', type=int, default=None,
                             help="Dimension of attention layer")
     arg_parser.add_argument('--decoder-dims', type=int_list, default="512,64",
                             help="Comma separated list of dimensions of decoding layer")
     arg_parser.add_argument('--encoder-dims', type=int_list, default="16,32,64",
                             help="Comma separated list of dimensions of encoding layers")
-    arg_parser.add_argument('--dropout', type=float, default=0.1,
-                            help="Dropout probability for decoder")
-    arg_parser.add_argument('--norm-to-ssi', type=float, default=None,
-                            help="Dropout probability for decoder")
-    arg_parser.add_argument('--add-ssi', action='store_true',
-                            help="Add ssi value to input of the decoder")
     arg_parser.add_argument('--loss-criterion', type=str, default="ce",
                             help="Loss criterion: Cross-Entropy (ce), Mean Square Error (mse) or L1 (l1)")
     arg_parser.add_argument('--rotate-samples', action='store_true',
@@ -125,7 +113,7 @@ def set_common_args():
     arg_parser.add_argument('--mean-input', action='store_true', help="Use a custom padding for global dataset")
     arg_parser.add_argument('--experiment', type=str, default=None, help="Read data via freva experiment")
     arg_parser.add_argument('--train-years', type=int_list, default='1992',
-                            help="Comma separated list of ssi values that are used for training")
+                            help="Comma separated list of years that are used for training")
     arg_parser.add_argument('--lazy-load', action='store_true', help="Load data sets during training")
     return arg_parser
 
@@ -156,8 +144,8 @@ def set_train_args(arg_file=None):
                             help="Iteration step interval at which the model should be saved")
     arg_parser.add_argument('-f', '--load-from-file', type=str, action=LoadFromFile,
                             help="Load all the arguments from a text file")
-    arg_parser.add_argument('--train-ssis', type=float_list, default='0,5,10,20,40',
-                            help="Comma separated list of ssi values that are used for training")
+    arg_parser.add_argument('--train-categories', type=str_list, default='0,5,10,20,40',
+                            help="Comma separated list of category values that are used for training")
     arg_parser.add_argument('--train-samples', type=interv_list, default='101',
                             help="Comma separated list of samples that are used for training")
     global_args(arg_parser, arg_file)
@@ -173,15 +161,7 @@ def set_evaluate_args(arg_file=None, prog_func=None):
                             help="Prefix used for the output filenames")
     arg_parser.add_argument('-f', '--load-from-file', type=str, action=LoadFromFile,
                             help="Load all the arguments from a text file")
-    arg_parser.add_argument('--action', type=str, default='test', help="Prediction action: evaluate (test) with "
-                                                                       "ground truth or predict (predict) without "
-                                                                       "ground truth")
-    arg_parser.add_argument('--mm', type=int, default=None, help="Create plots with monthly mean")
     arg_parser.add_argument('--plot-overview', action='store_true', help="Create overview plots")
-    arg_parser.add_argument('--plot-heatmaps', action='store_true', help="Create heatmap plots")
-    arg_parser.add_argument('--plot-enso-tables', action='store_true', help="Create enso tables")
-    arg_parser.add_argument('--norm-channels', action='store_true', help="Normalize LRP explanation over channels")
-    arg_parser.add_argument('--color-plot', action='store_true', help="Normalize LRP explanation over channels")
     arg_parser.add_argument('--plot-prediction-overview', action='store_true', help="Normalize LRP explanation over channels")
     arg_parser.add_argument('--plot-single-predictions', action='store_true', help="Normalize LRP explanation over channels")
     arg_parser.add_argument('--plot-explanations', action='store_true', help="Normalize LRP explanation over channels")
