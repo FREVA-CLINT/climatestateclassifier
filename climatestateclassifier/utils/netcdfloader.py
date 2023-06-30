@@ -37,13 +37,9 @@ class InfiniteSampler(Sampler):
 def nc_loadchecker(filename, data_type):
     basename = filename.split("/")[-1]
 
-    if not os.path.isfile(filename):
-        print('File {} not found.'.format(filename))
-
     try:
         # We use load_dataset instead of open_dataset because of lazy transpose
         ds = xr.load_dataset(filename, decode_times=True)
-
     except Exception:
         raise ValueError('Impossible to read {}.'
                          '\nPlease, check that it is a netCDF file and it is not corrupted.'.format(basename))
