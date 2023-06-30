@@ -92,16 +92,8 @@ def set_common_args():
                                  " a single sample is left out for validation, all others are used for training")
     arg_parser.add_argument('--max-rotations', type=int, default=5, help="Stop rotations after specified number")
     arg_parser.add_argument('--time-steps', type=int, default=1, help="Number of time steps in each sample")
-    arg_parser.add_argument('--beam-size', type=int, default=5, help="Size of beam for explanation beam")
-    arg_parser.add_argument('--reference-colors', type=str_list, default=None,
-                            help="Comma separated list of colors for plotting reference graphs")
-    arg_parser.add_argument('--add-noise', action='store_true',
-                            help="Add random noise to input data to reduce over-fitting")
-    arg_parser.add_argument('--vlim', type=int_list, default="-1,3",
+    arg_parser.add_argument('--vlim', type=int_list, default="-1,1",
                             help="Comma separated list of vmin, vmax values for the color scale of the snapshot graphs")
-    arg_parser.add_argument('--attention', action='store_true', help="Apply attention layer")
-    arg_parser.add_argument('--reverse-jja-indices', type=int_list, default='17,18,19',
-                            help="Create plot images of the results for the comma separated list of time indices")
     arg_parser.add_argument('--labels', type=str_list, default=',nh,sh,ne',
                             help="Comma separated list of labels for classifier")
     arg_parser.add_argument('--label-names', type=str_list, default='Tropics,Northern Hemisphere,Southern Hemisphere,'
@@ -111,9 +103,6 @@ def set_common_args():
                             help="Random seed for iteration loop and initialization weights")
     arg_parser.add_argument('--global-padding', action='store_true', help="Use a custom padding for global dataset")
     arg_parser.add_argument('--mean-input', action='store_true', help="Use a custom padding for global dataset")
-    arg_parser.add_argument('--experiment', type=str, default=None, help="Read data via freva experiment")
-    arg_parser.add_argument('--train-years', type=int_list, default='1992',
-                            help="Comma separated list of years that are used for training")
     arg_parser.add_argument('--lazy-load', action='store_true', help="Load data sets during training")
     return arg_parser
 
@@ -162,15 +151,13 @@ def set_evaluate_args(arg_file=None, prog_func=None):
     arg_parser.add_argument('-f', '--load-from-file', type=str, action=LoadFromFile,
                             help="Load all the arguments from a text file")
     arg_parser.add_argument('--plot-overview', action='store_true', help="Create overview plots")
-    arg_parser.add_argument('--plot-prediction-overview', action='store_true', help="Normalize LRP explanation over channels")
-    arg_parser.add_argument('--plot-single-predictions', action='store_true', help="Normalize LRP explanation over channels")
-    arg_parser.add_argument('--plot-explanations', action='store_true', help="Normalize LRP explanation over channels")
+    arg_parser.add_argument('--plot-prediction-overview', action='store_true', help="Plot prediction overview")
+    arg_parser.add_argument('--plot-single-predictions', action='store_true', help="Plot single predictions")
+    arg_parser.add_argument('--plot-explanations', action='store_true', help="Plot LRP explanations")
     arg_parser.add_argument('--cmap-colors', type=str_list, default=None,
                             help="Comma separated list of classes for location prediction")
     arg_parser.add_argument('--explanation-names', type=str_list, default="gamma",
                             help="Comma separated list of explanations. Choose from: "
                                  "gradient, epsilon, gamma, gamma+epsilon, alpha1beta0, alpha2beta1, "
                                  "patternattribution, patternnet")
-    arg_parser.add_argument('--eval-years', type=str_list, default="1992", help="Read data via freva experiment")
-    arg_parser.add_argument('--gt-classes', type=str_list, default='', help="Read data via freva experiment")
     global_args(arg_parser, arg_file, prog_func)
