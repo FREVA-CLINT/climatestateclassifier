@@ -17,8 +17,8 @@ def create_prediction(model_name, val_samples):
     dataset = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
     input = torch.stack([dataset[j][0] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     label = torch.stack([dataset[j][1] for j in range(dataset.__len__())]).to(torch.device('cpu'))
-    category = torch.stack([dataset[j][2] for j in range(dataset.__len__())])
-    sample_name = torch.stack([dataset[j][3] for j in range(dataset.__len__())])
+    category = [dataset[j][2] for j in range(dataset.__len__())]
+    sample_name = [dataset[j][3] for j in range(dataset.__len__())]
 
     # create model and predictions
     in_channels = len(cfg.data_types) if cfg.mean_input else len(cfg.data_types) * cfg.time_steps
@@ -87,14 +87,12 @@ def evaluate(arg_file=None, prog_func=None):
                 inputs.append(input)
                 outputs.append(output)
                 labels.append(label)
-                categories.append(category)
-                sample_names.append(sample_name)
                 explanations.append(explanation)
+                categories += category
+                sample_names += sample_name
             inputs = torch.cat(inputs)
             outputs = torch.cat(outputs)
             labels = torch.cat(labels)
-            categories = torch.cat(categories)
-            sample_names = torch.cat(sample_names)
             if cfg.plot_explanations:
                 explanations = torch.cat(explanations, dim=1)
         else:
