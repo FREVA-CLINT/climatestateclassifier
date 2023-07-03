@@ -47,10 +47,8 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
     writer = SummaryWriter(log_dir='{}/{}'.format(cfg.log_dir, rotation_string))
 
     # create data sets
-    dataset_train = NetCDFLoader(cfg.data_root_dir, cfg.data_types, train_samples,
-                                 cfg.train_ssis, cfg.labels, cfg.norm_to_ssi)
-    dataset_val = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples,
-                               cfg.val_ssis, cfg.labels, cfg.norm_to_ssi)
+    dataset_train = NetCDFLoader(cfg.data_root_dir, cfg.data_types, train_samples, cfg.train_categories, cfg.labels)
+    dataset_val = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
 
     iterator_train = iter(DataLoader(dataset_train, batch_size=cfg.batch_size,
                                      sampler=InfiniteSampler(len(dataset_train)),
@@ -86,9 +84,9 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
         # train model
         model.train()
-        input, labels, _, _ = [x.to(cfg.device) for x in next(iterator_train)]
-        output = model(input)
-        train_loss = criterion(output, labels)
+        input, labels, _, _ = next(iterator_train)
+        output = model(input.to(cfg.device))
+        train_loss = criterion(output, labels.to(cfg.device))
 
         optimizer.zero_grad()
         train_loss.backward()

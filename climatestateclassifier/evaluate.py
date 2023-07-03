@@ -9,16 +9,16 @@ from .utils.explain_net import generate_explanations
 from .utils.io import load_ckpt
 from .utils.netcdfloader import NetCDFLoader
 from .utils.plot_utils import plot_single_predictions, plot_explanations, \
-    plot_class_predictions, plot_ssi_predictions, plot_prediction_overview
+    plot_class_predictions, plot_predictions_by_category, plot_prediction_overview
 
 
 def create_prediction(model_name, val_samples):
     # load data
-    dataset = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples, cfg.val_ssis, cfg.labels, cfg.norm_to_ssi)
+    dataset = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
     input = torch.stack([dataset[j][0] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     label = torch.stack([dataset[j][1] for j in range(dataset.__len__())]).to(torch.device('cpu'))
-    ssi = torch.stack([dataset[j][2] for j in range(dataset.__len__())]).to(torch.device('cpu'))
-    sample_name = torch.stack([dataset[j][3] for j in range(dataset.__len__())])
+    category = [dataset[j][2] for j in range(dataset.__len__())]
+    sample_name = [dataset[j][3] for j in range(dataset.__len__())]
 
     # create model and predictions
     in_channels = len(cfg.data_types) if cfg.mean_input else len(cfg.data_types) * cfg.time_steps
@@ -54,7 +54,7 @@ def create_prediction(model_name, val_samples):
             for i in range(input.shape[0]):
                 input[i, :, v, :, :] = dataset.data_normalizer.renormalize(input[i, :, v, :, :], v)
 
-    return input, output, label, ssi, sample_name, dims, explanations
+    return input, output, label, category, sample_name, dims, explanations
 
 
 def evaluate(arg_file=None, prog_func=None):
@@ -77,40 +77,38 @@ def evaluate(arg_file=None, prog_func=None):
     for i_model in range(n_models):
         if cfg.rotate_samples:
             # create rotation predictions
-            inputs, outputs, labels, ssis, sample_names, explanations = [], [], [], [], [], []
+            inputs, outputs, labels, categories, sample_names, explanations = [], [], [], [], [], []
             for rotation in range(0, len(cfg.val_samples)):
                 val_samples = set(cfg.val_samples[rotation:rotation + 1])
                 model_name = "{}/ckpt/{}{}.pth".format(
                     cfg.model_dir, cfg.model_names[i_model], 'rotation_{}'.format(rotation))
 
-                input, output, label, ssi, sample_name, dims, explanation = create_prediction(model_name, val_samples)
+                input, output, label, category, sample_name, dims, explanation = create_prediction(model_name, val_samples)
                 inputs.append(input)
                 outputs.append(output)
                 labels.append(label)
-                ssis.append(ssi)
-                sample_names.append(sample_name)
                 explanations.append(explanation)
+                categories += category
+                sample_names += sample_name
             inputs = torch.cat(inputs)
             outputs = torch.cat(outputs)
             labels = torch.cat(labels)
-            ssis = torch.cat(ssis)
-            sample_names = torch.cat(sample_names)
             if cfg.plot_explanations:
                 explanations = torch.cat(explanations, dim=1)
         else:
             # create normal predictions
             model_name = "{}/ckpt/{}.pth".format(cfg.model_dir, cfg.model_names[i_model])
-            inputs, outputs, labels, ssis, sample_names, dims, explanations = create_prediction(
+            inputs, outputs, labels, categories, sample_names, dims, explanations = create_prediction(
                 model_name, cfg.val_samples)
 
         if cfg.plot_prediction_overview:
             plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
             plot_class_predictions(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
-            plot_ssi_predictions(outputs, labels, ssis, eval_name="{}".format(cfg.eval_names[i_model]))
+            plot_predictions_by_category(outputs, labels, categories, eval_name="{}".format(cfg.eval_names[i_model]))
         if cfg.plot_single_predictions:
-            plot_single_predictions(outputs, labels, ssis, sample_names, eval_name="{}".format(cfg.eval_names[i_model]))
+            plot_single_predictions(outputs, labels, categories, sample_names, eval_name="{}".format(cfg.eval_names[i_model]))
         if cfg.plot_explanations:
-            plot_explanations(inputs, dims, labels, outputs, sample_names, ssis, explanations,
+            plot_explanations(inputs, dims, labels, outputs, sample_names, categories, explanations,
                               eval_name="{}".format(cfg.eval_names[i_model]))
 
 
