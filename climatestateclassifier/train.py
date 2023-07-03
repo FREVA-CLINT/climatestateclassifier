@@ -107,7 +107,7 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
             writer.add_scalar("val-loss", i+1, val_loss.item())
 
         if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
-            save_ckpt('{:s}/ckpt/{:d}{}.pth'.format(cfg.snapshot_dir, i + 1, rotation_string),
+            save_ckpt('{:s}/ckpt/{:d}{:s}.pth'.format(cfg.snapshot_dir, i + 1, rotation_string),
                       [('model', model)], [('optimizer', optimizer)], i + 1)
 
     writer.close()

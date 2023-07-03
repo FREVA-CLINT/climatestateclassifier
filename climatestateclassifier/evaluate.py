@@ -80,7 +80,7 @@ def evaluate(arg_file=None, prog_func=None):
             inputs, outputs, labels, categories, sample_names, explanations = [], [], [], [], [], []
             for rotation in range(0, len(cfg.val_samples)):
                 val_samples = set(cfg.val_samples[rotation:rotation + 1])
-                model_name = "{}/ckpt/{}{}.pth".format(
+                model_name = "{:s}/ckpt/{:s}{:s}.pth".format(
                     cfg.model_dir, cfg.model_names[i_model], 'rotation_{}'.format(rotation))
 
                 input, output, label, category, sample_name, dims, explanation = create_prediction(model_name, val_samples)
@@ -97,7 +97,7 @@ def evaluate(arg_file=None, prog_func=None):
                 explanations = torch.cat(explanations, dim=1)
         else:
             # create normal predictions
-            model_name = "{}/ckpt/{}.pth".format(cfg.model_dir, cfg.model_names[i_model])
+            model_name = "{:s}/ckpt/{:s}.pth".format(cfg.model_dir, cfg.model_names[i_model])
             inputs, outputs, labels, categories, sample_names, dims, explanations = create_prediction(
                 model_name, cfg.val_samples)
 

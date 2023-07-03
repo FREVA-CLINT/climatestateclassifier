@@ -1,6 +1,7 @@
 import torch
 from .functional.maxpool import maxpool2d
 
+
 class MaxPool2d(torch.nn.MaxPool2d):
     def forward(self, input, explain=False, rule="epsilon", **kwargs):
         if not explain: return super(MaxPool2d, self).forward(input)
