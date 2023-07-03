@@ -29,8 +29,6 @@ def plot_prediction_overview(outputs, labels, eval_name):
         total_numbers_predictions.append(torch.sum(cleaned_predictions[:, i]).int().item())
         correct_predictions.append(metric(cleaned_predictions[:, i], labels[:, i])[0].item())
         false_predictions.append(metric(cleaned_predictions[:, i], labels[:, i])[1].item())
-    accuracy = torchmetrics.functional.accuracy(cleaned_predictions.int(), labels.int(), task='multilabel',
-                                                num_labels=len(cfg.labels))
 
     fig, ax = plt.subplots()
     fig.patch.set_visible(False)
@@ -46,8 +44,8 @@ def plot_prediction_overview(outputs, labels, eval_name):
 
     d = {
         '$\\bf{Labels}$': column_names,
-        '$\\bf{Total Real}$': total_numbers,
-        '$\\bf{Total Predictions}$': total_numbers_predictions,
+        '$\\bf{Total Ground Truth}$': total_numbers,
+        '$\\bf{Total Predicted}$': total_numbers_predictions,
         '$\\bf{Correct Classifications}$': correct_predictions,
         '$\\bf{False Classifications}$': false_predictions
     }
@@ -67,7 +65,8 @@ def plot_prediction_overview(outputs, labels, eval_name):
     for i in range(len(d.keys())):
         table[(0, i)].get_text().set_color('white')
     fig.tight_layout()
-    fig.suptitle("{} - total accuracy: {}".format(eval_name, accuracy))
+    fig.suptitle("{} - Total Accuracy: {} %".format(eval_name,
+                                                    round(100 * (correct_predictions[-1] / total_numbers[-1]), 2)))
     plt.savefig("{}/overview/{}.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
@@ -129,7 +128,8 @@ def plot_class_predictions(predictions, labels, eval_name):
     d = {' ': cfg.label_names}
 
     for i in range(len(cfg.labels)):
-        d['{}'.format(cfg.label_names[i])] = class_predictions[i]
+        d['{}'.format(cfg.label_names[i])] = ['{} %'.format(
+            round(100 * (pred / sum(class_predictions[i])), 2)) for pred in class_predictions[i]]
         prediction_colors.append(["#002f4a"] + len(cfg.labels) * ['red'])
         prediction_colors[i][i + 1] = 'green'
 
@@ -165,14 +165,10 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
 
     for i in range(len(class_predictions)):
         for j in range(len(class_predictions[i])):
-            if ((j < len(cfg.labels) and i < len(cfg.labels) - 1 and 0.0 in cfg.val_categories) or (
-                    i == len(cfg.labels) - 1 and j > len(cfg.labels) - 1)) and "ne" in cfg.labels:
-                class_predictions[i][j] = ""
-            else:
-                class_predictions[i][j] = "{} %".format(
-                    int(math.ceil(100 * (100 * class_predictions[i][j])) / 100) if math.ceil(
-                        100 * (100 * class_predictions[i][j])) / 100 % 1 == 0 else math.ceil(
-                        100 * (100 * class_predictions[i][j])) / 100)
+            class_predictions[i][j] = "{} %".format(
+                int(math.ceil(100 * (100 * class_predictions[i][j])) / 100) if math.ceil(
+                    100 * (100 * class_predictions[i][j])) / 100 % 1 == 0 else math.ceil(
+                    100 * (100 * class_predictions[i][j])) / 100)
 
     fig, ax = plt.subplots()
     fig.patch.set_visible(False)
@@ -198,13 +194,11 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
         for j in range(len(cfg.labels)):
             if class_predictions[j][i] == "0 %":
                 row_colors.append('white')
-            elif class_predictions[j][i] == "":
-                row_colors.append('gray')
+                class_predictions[j][i] = "-"
+            elif class_labels[i] == cfg.label_names[j]:
+                row_colors.append('green')
             else:
-                if class_labels[i] == cfg.label_names[j]:
-                    row_colors.append('green')
-                else:
-                    row_colors.append('red')
+                row_colors.append('red')
         prediction_colors.append(row_colors)
 
     df = pd.DataFrame(data=d)
