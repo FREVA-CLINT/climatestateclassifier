@@ -233,7 +233,7 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
         plt.plot(cfg.val_categories, class_predictions[name], label=name)
     plt.legend(loc="upper right", prop={'size': 7})
     plt.xlabel("Time")
-    plt.ylabel("Probability")
+    plt.ylabel("Probability in %")
     plt.savefig("{}/overview/{}_graphs.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
