@@ -219,22 +219,56 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
 
 
 def plot_predictions_by_category_graph(predictions, categories, eval_name):
-    # Clean predictions
+    # Generate some sample data for two time series
     pred_indices = predictions.argmax(1)
 
+    years = [int(cat) for cat in cfg.val_categories] + [int(cfg.val_categories[-1]) + 1]
+
     class_predictions = {}
+    class_colors = ["blue", "red", "yellow", "black"]
     for name in cfg.label_names:
         class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
 
     for i in range(pred_indices.shape[0]):
         class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 100 / len(cfg.val_samples)
 
+    # Calculate the width of each bar
+    bar_width = 1
+
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+
+    # Plot the first time series
+    current_bottom = 0.0
+    for name, color in zip(cfg.label_names, class_colors):
+        for year, value in zip(years, class_predictions[name]):
+            alpha = value  # Transparency value based on the time series value
+
+            ax.bar(year, 0.1, color=color, alpha=alpha, width=bar_width, align='center', bottom=current_bottom)
+        current_bottom += 0.1
+
+    # Set the x-axis limits and labels
+    ax.set_xlim(years[0] - 1, years[-1] + 1)
+    ax.set_xlabel('Year')
+
+    # Set the y-axis limits and label
+    ax.set_ylim(0, 0.4)
+    ax.yaxis.set_visible(False)
+
+    current_bottom = 0.05
     for name in cfg.label_names:
-        plt.plot([int(cat) for cat in cfg.val_categories], class_predictions[name], label=name)
-    plt.legend(loc="upper right", prop={'size': 7})
-    plt.xlabel("Time")
-    plt.ylabel("Probability in %")
-    plt.savefig("{}/overview/{}_graphs.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+        ax.text(years[0] - 2, current_bottom, name, ha='right', va='center')
+        current_bottom += 0.1
+
+    # Remove the box around the plot
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(0.9)
+
+    # Show the plot
+    fig.tight_layout()
+    plt.savefig("{}/overview/{}_categories_graph.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
