@@ -230,7 +230,7 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
         class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 100 / len(cfg.val_samples)
 
     for name in cfg.label_names:
-        plt.plot(cfg.val_categories, class_predictions[name], label=name)
+        plt.plot([int(cat) for cat in cfg.val_categories], class_predictions[name], label=name)
     plt.legend(loc="upper right", prop={'size': 7})
     plt.xlabel("Time")
     plt.ylabel("Probability in %")
