@@ -160,8 +160,7 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
     for i in range(len(cfg.val_categories)):
         for k in range(gt_indices.shape[0]):
             if cfg.val_categories[i] == categories[k]:
-                class_predictions[gt_indices[k]][pred_indices[k] + (i * len(cfg.labels))] += (
-                    (1.0 / len(cfg.val_samples)) if categories[k] != 0.0 else 1.0 / len(cfg.val_samples))
+                class_predictions[gt_indices[k]][pred_indices[k] + (i * len(cfg.labels))] += 1.0 / len(cfg.val_samples)
 
     for i in range(len(class_predictions)):
         for j in range(len(class_predictions[i])):
@@ -216,6 +215,26 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
 
     fig.tight_layout()
     plt.savefig("{}/overview/{}_categories.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.clf()
+
+
+def plot_predictions_by_category_graph(predictions, categories, eval_name):
+    # Clean predictions
+    pred_indices = predictions.argmax(1)
+
+    class_predictions = {}
+    for name in cfg.label_names:
+        class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
+
+    for i in range(pred_indices.shape[0]):
+        class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 100 / len(cfg.val_samples)
+
+    for name in cfg.label_names:
+        plt.plot(cfg.val_categories, class_predictions[name], label=name)
+    plt.legend(loc="upper right", prop={'size': 7})
+    plt.xlabel("Time")
+    plt.ylabel("Probability")
+    plt.savefig("{}/overview/{}_graphs.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 

@@ -9,7 +9,7 @@ from .utils.explain_net import generate_explanations
 from .utils.io import load_ckpt
 from .utils.netcdfloader import NetCDFLoader
 from .utils.plot_utils import plot_single_predictions, plot_explanations, \
-    plot_class_predictions, plot_predictions_by_category, plot_prediction_overview
+    plot_class_predictions, plot_predictions_by_category, plot_prediction_overview, plot_predictions_by_category_graph
 
 
 def create_prediction(model_name, val_samples):
@@ -100,11 +100,11 @@ def evaluate(arg_file=None, prog_func=None):
             model_name = "{:s}/ckpt/{:s}.pth".format(cfg.model_dir, cfg.model_names[i_model])
             inputs, outputs, labels, categories, sample_names, dims, explanations = create_prediction(
                 model_name, cfg.val_samples)
-
         if cfg.plot_prediction_overview:
             plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
             plot_class_predictions(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
             plot_predictions_by_category(outputs, labels, categories, eval_name="{}".format(cfg.eval_names[i_model]))
+            plot_predictions_by_category_graph(outputs, categories, eval_name="{}".format(cfg.eval_names[i_model]))
         if cfg.plot_single_predictions:
             plot_single_predictions(outputs, labels, categories, sample_names, eval_name="{}".format(cfg.eval_names[i_model]))
         if cfg.plot_explanations:
