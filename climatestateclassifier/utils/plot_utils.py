@@ -242,7 +242,7 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
     current_bottom = 0.0
     for name, color in zip(cfg.label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
-            alpha = value  # Transparency value based on the time series value
+            alpha = value if value <= 1.0 else 1.0  # Transparency value based on the time series value
 
             ax.bar(year, 0.1, color=color, alpha=alpha, width=bar_width, align='center', bottom=current_bottom)
         current_bottom += 0.1
