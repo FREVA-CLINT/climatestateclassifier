@@ -230,7 +230,7 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
         class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
 
     for i in range(pred_indices.shape[0]):
-        class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 100 / len(cfg.val_samples)
+        class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
 
     # Calculate the width of each bar
     bar_width = 1
