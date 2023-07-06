@@ -91,7 +91,7 @@ class NetCDFLoader(Dataset):
             for name in sample_names:
                 for category in sample_categories:
                     for j in range(len(labels)):
-                        # data names must be in the format: <category_name><sample_name><data_type>
+                        # data names must be in the format: <category_name><sample_name><data_type><class_label>
                         data_path = '{:s}/{}{}{}{}.nc'.format(data_root, category, name, data_types[i], labels[j])
                         if exists(data_path):
                             if self.xr_dss is not None:

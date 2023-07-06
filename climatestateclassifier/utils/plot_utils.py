@@ -239,7 +239,7 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
 
     # Plot the first time series
     label_names = ["No Eruption", "Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    class_colors = ["gray", "red", "yellow", "blue"]
+    class_colors = ["gray", "red", "purple", "blue"]
 
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
