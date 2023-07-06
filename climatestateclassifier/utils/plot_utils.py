@@ -258,7 +258,7 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
     ax.yaxis.set_visible(False)
 
     current_bottom = 0.05
-    for name in cfg.label_names:
+    for name in label_names:
         ax.text(years[0] - 2, current_bottom, name, ha='right', va='center')
         current_bottom += 0.1
 
