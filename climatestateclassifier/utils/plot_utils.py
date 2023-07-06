@@ -225,7 +225,6 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
     years = [int(cat) for cat in cfg.val_categories] + [int(cfg.val_categories[-1]) + 1]
 
     class_predictions = {}
-    class_colors = ["blue", "red", "yellow", "black"]
     for name in cfg.label_names:
         class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
 
@@ -239,8 +238,11 @@ def plot_predictions_by_category_graph(predictions, categories, eval_name):
     fig, ax = plt.subplots()
 
     # Plot the first time series
+    label_names = ["No Eruption", "Southern Hemisphere", "Tropics", "Northern Hemisphere"]
+    class_colors = ["black", "red", "yellow", "blue"]
+
     current_bottom = 0.0
-    for name, color in zip(cfg.label_names, class_colors):
+    for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
             alpha = value if value <= 1.0 else 1.0  # Transparency value based on the time series value
 
