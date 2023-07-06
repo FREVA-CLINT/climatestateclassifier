@@ -2,7 +2,7 @@
 --eval-dir demo/results/
 --data-root-dir demo/data/
 --model-names demo_snapshot
---eval-names demo
+--eval-names 100
 --data-types tsurf
 --val-categories 1992
 --val-samples 1
