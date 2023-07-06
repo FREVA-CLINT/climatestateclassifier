@@ -67,7 +67,7 @@ def plot_prediction_overview(outputs, labels, eval_name):
     fig.tight_layout()
     fig.suptitle("{} - Total Accuracy: {} %".format(eval_name,
                                                     round(100 * (correct_predictions[-1] / total_numbers[-1]), 2)))
-    plt.savefig("{}/overview/{}.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.savefig("{}/tables/{}.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
@@ -106,7 +106,7 @@ def plot_single_predictions(outputs, labels, categories, sample_names, eval_name
     for i in range(len(d.keys())):
         table[(0, i)].get_text().set_color('white')
     fig.tight_layout()
-    plt.savefig("{}/total/{}.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.savefig("{}/tables/{}.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
@@ -129,7 +129,8 @@ def plot_class_predictions(predictions, labels, eval_name):
 
     for i in range(len(cfg.labels)):
         d['{}'.format(cfg.label_names[i])] = ['{} %'.format(
-            round(100 * (pred / sum(class_predictions[i])), 2)) for pred in class_predictions[i]]
+            round(100 * (pred / sum(class_predictions[i])), 2) if sum(class_predictions[i]) > 0 else 0)
+            for pred in class_predictions[i]]
         prediction_colors.append(["#002f4a"] + len(cfg.labels) * ['red'])
         prediction_colors[i][i + 1] = 'green'
 
@@ -147,7 +148,7 @@ def plot_class_predictions(predictions, labels, eval_name):
                 table[(j, i)].get_text().set_color('white')
 
     fig.tight_layout()
-    plt.savefig("{}/overview/{}_classes.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.savefig("{}/tables/{}_classes.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
@@ -214,72 +215,13 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
                 table[(j, i)].get_text().set_color('black')
 
     fig.tight_layout()
-    plt.savefig("{}/overview/{}_categories.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
-    plt.clf()
-
-
-def plot_predictions_by_category_graph(predictions, categories, eval_name):
-    # Generate some sample data for two time series
-    pred_indices = predictions.argmax(1)
-
-    years = [int(cat) for cat in cfg.val_categories] + [int(cfg.val_categories[-1]) + 1]
-
-    class_predictions = {}
-    for name in cfg.label_names:
-        class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
-
-    for i in range(pred_indices.shape[0]):
-        class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
-
-    # Calculate the width of each bar
-    bar_width = 1
-
-    # Create a figure and axis
-    fig, ax = plt.subplots()
-
-    # Plot the first time series
-    label_names = ["No Eruption", "Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    class_colors = ["gray", "red", "purple", "blue"]
-
-    current_bottom = 0.0
-    for name, color in zip(label_names, class_colors):
-        for year, value in zip(years, class_predictions[name]):
-            alpha = value if value <= 1.0 else 1.0  # Transparency value based on the time series value
-
-            ax.bar(year, 0.1, color=color, alpha=alpha, width=bar_width, align='center', bottom=current_bottom)
-        current_bottom += 0.1
-
-    # Set the x-axis limits and labels
-    ax.set_xlim(years[0] - 1, years[-1] + 1)
-    ax.set_xlabel('Year')
-
-    # Set the y-axis limits and label
-    ax.set_ylim(0, 0.4)
-    ax.yaxis.set_visible(False)
-
-    current_bottom = 0.05
-    for name in label_names:
-        ax.text(years[0] - 2, current_bottom, name, ha='right', va='center')
-        current_bottom += 0.1
-
-    # Remove the box around the plot
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.spines['bottom'].set_linewidth(0.9)
-
-    # Show the plot
-    fig.tight_layout()
-    plt.savefig("{}/overview/{}_categories_graph.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.savefig("{}/tables/{}_categories.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
 def plot_single_explanation(explanations, ax, dims, pad=0.13):
     # color map
-    if not cfg.cmap_colors:
-        cmap = matplotlib.cm.RdBu
-    else:
-        cmap = matplotlib.colors.ListedColormap(cfg.cmap_colors)
+    cmap = matplotlib.colors.ListedColormap(cfg.explanation_cmap)
     new_cmap = cmap(np.arange(cmap.N))
     new_cmap = ListedColormap(new_cmap)
 

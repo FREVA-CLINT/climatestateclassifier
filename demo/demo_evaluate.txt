@@ -1,0 +1,14 @@
+--model-dir demo/snapshots/
+--eval-dir demo/results/
+--data-root-dir demo/data/
+--model-names demo_snapshot
+--eval-names demo
+--data-types tsurf
+--val-categories 1992
+--val-samples 1
+--labels tr,nh,sh,ne
+--label-names Tropics,North,South,NoEruption
+--device cpu
+--mean-input
+--plot-tables
+--plot-explanations

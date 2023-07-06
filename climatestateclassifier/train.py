@@ -19,11 +19,8 @@ def train(arg_file=None):
 
     cfg.set_train_args(arg_file)
 
-    for subdir in ("", "/results", "/ckpt"):
-        outdir = cfg.snapshot_dir + subdir
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
-
+    if not os.path.exists(cfg.snapshot_dir):
+        os.makedirs(cfg.snapshot_dir)
     if not os.path.exists(cfg.log_dir):
         os.makedirs(cfg.log_dir)
 
@@ -71,7 +68,7 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
     start_iter = 0
     if cfg.resume_iter:
         start_iter = load_ckpt(
-            '{}/ckpt/{}{}.pth'.format(cfg.snapshot_dir, cfg.resume_iter, rotation_string), [('model', model)],
+            '{}/{}{}.pth'.format(cfg.snapshot_dir, cfg.resume_iter, rotation_string), [('model', model)],
             cfg.device, [('optimizer', optimizer)])
         for param_group in optimizer.param_groups:
             param_group['lr'] = cfg.lr
@@ -107,7 +104,7 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
             writer.add_scalar("val-loss", i+1, val_loss.item())
 
         if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
-            save_ckpt('{:s}/ckpt/{:d}{:s}.pth'.format(cfg.snapshot_dir, i + 1, rotation_string),
+            save_ckpt('{:s}/{:d}{:s}.pth'.format(cfg.snapshot_dir, i + 1, rotation_string),
                       [('model', model)], [('optimizer', optimizer)], i + 1)
 
     writer.close()

@@ -150,12 +150,12 @@ def set_evaluate_args(arg_file=None, prog_func=None):
                             help="Prefix used for the output filenames")
     arg_parser.add_argument('-f', '--load-from-file', type=str, action=LoadFromFile,
                             help="Load all the arguments from a text file")
-    arg_parser.add_argument('--plot-overview', action='store_true', help="Create overview plots")
-    arg_parser.add_argument('--plot-prediction-overview', action='store_true', help="Plot prediction overview")
-    arg_parser.add_argument('--plot-single-predictions', action='store_true', help="Plot single predictions")
+    arg_parser.add_argument('--plot-overview', action='store_true', help="Create overview tables")
+    arg_parser.add_argument('--plot-tables', action='store_true', help="Plot prediction overview")
     arg_parser.add_argument('--plot-explanations', action='store_true', help="Plot LRP explanations")
-    arg_parser.add_argument('--cmap-colors', type=str_list, default=None,
-                            help="Comma separated list of classes for location prediction")
+    arg_parser.add_argument('--explanation-cmap', type=str_list,
+                            default="#FFFFFF,#E6F2E6,#CCE5CC,#B3D9B3,#99CC99,#80BF80,#006600",
+                            help="Comma separated list of colors for explanation cmap")
     arg_parser.add_argument('--explanation-names', type=str_list, default="gamma",
                             help="Comma separated list of explanations. Choose from: "
                                  "gradient, epsilon, gamma, gamma+epsilon, alpha1beta0, alpha2beta1, "
