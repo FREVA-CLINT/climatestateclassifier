@@ -11,13 +11,38 @@ import torchmetrics
 from matplotlib.colors import ListedColormap
 
 from .. import config as cfg
+import csv
+
+
+def save_results_as_csv(eval_name, labels, outputs, categories, sample_names):
+    with open('{}/overview/{}.csv'.format(cfg.eval_dir, eval_name), 'w', newline='') as file:
+        writer = csv.writer(file)
+
+        writer.writerow(["Label", "Output", "Category", "Name"])
+
+        for i in range(labels.shape[0]):
+            writer.writerow([labels[i].item(), outputs[i].item(), categories[i], sample_names[i]])
+
+
+def read_results_from_csv(eval_name):
+    labels, outputs, categories, sample_names = [], [], [], []
+    with open('{}/overview/{}.csv'.format(cfg.eval_dir, eval_name), 'r') as file:
+        csvreader = csv.reader(file)
+        i = 0
+        for row in csvreader:
+            if i != 0:
+                labels.append(torch.tensor([int(row[0])]))
+                outputs.append(torch.tensor([int(row[1])]))
+                categories.append(row[2])
+                sample_names.append(row[3])
+            i = i+1
+    return torch.cat(labels), torch.cat(outputs), categories, sample_names
 
 
 def plot_prediction_overview(outputs, labels, eval_name):
     # Clean predictions
-    indices = outputs.argmax(1)
-    cleaned_predictions = torch.zeros(outputs.shape).scatter(1, indices.unsqueeze(1), 1.0)
-    labels = labels.int()
+    pred_indices = outputs.argmax(1)
+    gt_indices = labels.argmax(1)
 
     total_numbers = []
     total_numbers_predictions = []
@@ -73,15 +98,13 @@ def plot_prediction_overview(outputs, labels, eval_name):
 
 def plot_single_predictions(outputs, labels, categories, sample_names, eval_name):
     # Clean predictions
-    pred_indices = outputs.argmax(1)
-    gt_indices = labels.argmax(1)
 
     prediction_labels = []
     gt_labels = []
     prediction_colors = []
-    for i in range(pred_indices.shape[0]):
-        gt_labels.append(cfg.label_names[gt_indices[i]])
-        prediction_labels.append(cfg.label_names[pred_indices[i]])
+    for i in range(outputs.shape[0]):
+        gt_labels.append(cfg.label_names[labels[i]])
+        prediction_labels.append(cfg.label_names[outputs[i]])
         if gt_labels[-1] == prediction_labels[-1]:
             prediction_colors.append(['white', 'white', 'white', 'lightgreen'])
         else:
@@ -110,14 +133,11 @@ def plot_single_predictions(outputs, labels, categories, sample_names, eval_name
     plt.clf()
 
 
-def plot_class_predictions(predictions, labels, eval_name):
+def plot_class_predictions(outputs, labels, eval_name):
     # Clean predictions
-    pred_indices = predictions.argmax(1)
-    gt_indices = labels.argmax(1)
-
     class_predictions = [[0 for j in range(len(cfg.labels))] for i in range(len(cfg.labels))]
-    for i in range(pred_indices.shape[0]):
-        class_predictions[gt_indices[i]][pred_indices[i]] += 1
+    for i in range(outputs.shape[0]):
+        class_predictions[labels[i]][outputs[i]] += 1
 
     fig, ax = plt.subplots()
     fig.patch.set_visible(False)
@@ -151,16 +171,13 @@ def plot_class_predictions(predictions, labels, eval_name):
     plt.clf()
 
 
-def plot_predictions_by_category(predictions, labels, categories, eval_name):
-    # Clean predictions
-    pred_indices = predictions.argmax(1)
-    gt_indices = labels.argmax(1)
+def plot_predictions_by_category(outputs, labels, categories, eval_name):
 
     class_predictions = [[0 for j in range(len(cfg.labels) * len(cfg.val_categories))] for i in range(len(cfg.labels))]
     for i in range(len(cfg.val_categories)):
-        for k in range(gt_indices.shape[0]):
+        for k in range(labels.shape[0]):
             if cfg.val_categories[i] == categories[k]:
-                class_predictions[gt_indices[k]][pred_indices[k] + (i * len(cfg.labels))] += 1.0 / len(cfg.val_samples)
+                class_predictions[labels[k]][outputs[k] + (i * len(cfg.labels))] += 1.0 / len(cfg.val_samples)
 
     for i in range(len(class_predictions)):
         for j in range(len(class_predictions[i])):
@@ -218,18 +235,15 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
     plt.clf()
 
 
-def plot_predictions_by_category_graph(predictions, categories, eval_name):
-    # Generate some sample data for two time series
-    pred_indices = predictions.argmax(1)
-
+def plot_predictions_by_category_graph(outputs, categories, eval_name):
     years = [int(cat) for cat in cfg.val_categories] + [int(cfg.val_categories[-1]) + 1]
 
     class_predictions = {}
     for name in cfg.label_names:
         class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
 
-    for i in range(pred_indices.shape[0]):
-        class_predictions[cfg.label_names[pred_indices[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
+    for i in range(outputs.shape[0]):
+        class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
 
     # Calculate the width of each bar
     bar_width = 1

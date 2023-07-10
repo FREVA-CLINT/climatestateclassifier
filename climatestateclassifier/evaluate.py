@@ -9,7 +9,8 @@ from .utils.explain_net import generate_explanations
 from .utils.io import load_ckpt
 from .utils.netcdfloader import NetCDFLoader
 from .utils.plot_utils import plot_single_predictions, plot_explanations, \
-    plot_class_predictions, plot_predictions_by_category, plot_prediction_overview, plot_predictions_by_category_graph
+    plot_class_predictions, plot_predictions_by_category, plot_prediction_overview, plot_predictions_by_category_graph, \
+    read_results_from_csv, save_results_as_csv
 
 
 def create_prediction(model_name, val_samples):
@@ -75,41 +76,48 @@ def evaluate(arg_file=None, prog_func=None):
     n_models = len(cfg.model_names)
 
     for i_model in range(n_models):
-        if cfg.rotate_samples:
-            # create rotation predictions
-            inputs, outputs, labels, categories, sample_names, explanations = [], [], [], [], [], []
-            for rotation in range(0, len(cfg.val_samples)):
-                val_samples = set(cfg.val_samples[rotation:rotation + 1])
-                model_name = "{:s}/ckpt/{:s}{:s}.pth".format(
-                    cfg.model_dir, cfg.model_names[i_model], 'rotation_{}'.format(rotation))
-
-                input, output, label, category, sample_name, dims, explanation = create_prediction(model_name, val_samples)
-                inputs.append(input)
-                outputs.append(output)
-                labels.append(label)
-                explanations.append(explanation)
-                categories += category
-                sample_names += sample_name
-            inputs = torch.cat(inputs)
-            outputs = torch.cat(outputs)
-            labels = torch.cat(labels)
-            if cfg.plot_explanations:
-                explanations = torch.cat(explanations, dim=1)
+        if cfg.load_from_csv:
+            labels, outputs, categories, sample_names = read_results_from_csv("{}".format(cfg.eval_names[i_model]))
         else:
-            # create normal predictions
-            model_name = "{:s}/ckpt/{:s}.pth".format(cfg.model_dir, cfg.model_names[i_model])
-            inputs, outputs, labels, categories, sample_names, dims, explanations = create_prediction(
-                model_name, cfg.val_samples)
+            if cfg.rotate_samples:
+                # create rotation predictions
+                inputs, outputs, labels, categories, sample_names, explanations = [], [], [], [], [], []
+                for rotation in range(0, len(cfg.val_samples)):
+                    val_samples = set(cfg.val_samples[rotation:rotation + 1])
+                    model_name = "{:s}/ckpt/{:s}{:s}.pth".format(
+                        cfg.model_dir, cfg.model_names[i_model], 'rotation_{}'.format(rotation))
+
+                    input, output, label, category, sample_name, dims, explanation = create_prediction(model_name, val_samples)
+                    inputs.append(input)
+                    outputs.append(output)
+                    labels.append(label)
+                    explanations.append(explanation)
+                    categories += category
+                    sample_names += sample_name
+                inputs = torch.cat(inputs)
+                outputs = torch.cat(outputs)
+                labels = torch.cat(labels)
+                if cfg.plot_explanations:
+                    explanations = torch.cat(explanations, dim=1)
+            else:
+                # create normal predictions
+                model_name = "{:s}/ckpt/{:s}.pth".format(cfg.model_dir, cfg.model_names[i_model])
+                inputs, outputs, labels, categories, sample_names, dims, explanations = create_prediction(
+                    model_name, cfg.val_samples)
+            outputs = outputs.argmax(1)
+            labels = labels.argmax(1)
+            save_results_as_csv("{}".format(cfg.eval_names[i_model]), labels, outputs, categories, sample_names)
+            if cfg.plot_explanations:
+                plot_explanations(inputs, dims, labels, outputs, sample_names, categories, explanations,
+                                  eval_name="{}".format(cfg.eval_names[i_model]))
+
         if cfg.plot_prediction_overview:
-            plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
+            #plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
             #plot_class_predictions(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
             plot_predictions_by_category(outputs, labels, categories, eval_name="{}".format(cfg.eval_names[i_model]))
             plot_predictions_by_category_graph(outputs, categories, eval_name="{}".format(cfg.eval_names[i_model]))
         if cfg.plot_single_predictions:
             plot_single_predictions(outputs, labels, categories, sample_names, eval_name="{}".format(cfg.eval_names[i_model]))
-        if cfg.plot_explanations:
-            plot_explanations(inputs, dims, labels, outputs, sample_names, categories, explanations,
-                              eval_name="{}".format(cfg.eval_names[i_model]))
 
 
 if __name__ == "__main__":
