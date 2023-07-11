@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torchmetrics
+from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap
 
 from .. import config as cfg
@@ -238,7 +239,18 @@ def plot_predictions_by_category(outputs, labels, categories, eval_name):
 
 
 def plot_predictions_by_category_graph(outputs, categories, eval_name):
-    years = [int(cat) for cat in cfg.val_categories] + [int(cfg.val_categories[-1]) + 1]
+    levels_forcing = [0.025, 0.03, 0.04, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.3]
+    norm_forcing = matplotlib.colors.BoundaryNorm(levels_forcing, 13)
+
+    colors = ["#FFFECA", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704",
+         "#FF3802", "#800026"]
+
+    cmap = matplotlib.colors.ListedColormap(
+        colors)
+    new_cmap = cmap(np.arange(cmap.N))
+    new_cmap = ListedColormap(new_cmap)
+
+    years = [int(cat) for cat in cfg.val_categories]
 
     class_predictions = {}
     for name in cfg.label_names:
@@ -250,16 +262,28 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         except ValueError:
             pass
 
-    class_predictions["Global AOD"] = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttljja.nc", "tauttl")[18:]
+    for i in range(len(years)):
+        print("Year: {}, SHext: {}%, Trop: {}%, NHext: {}%, No erup: {}%".format(years[i], int(100*class_predictions["Southern Hemisphere"][i]), int(100*class_predictions["Tropics"][i]), int(100*class_predictions["Northern Hemisphere"][i]), int(100*class_predictions["No Eruption"][i])))
+
+    global_aod = import_forcing("/home/johannes/PycharmProjects/climclass/data/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
+    global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
+    global_mean_aod = global_mean_aod / np.max(global_mean_aod)
+    class_predictions["Global AOD"] = global_mean_aod
 
     # Calculate the width of each bar
     bar_width = 1
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(10, 2))
+    fig, ax = plt.subplots(nrows=2, figsize=(10, 4))
+    fig.tight_layout()
+
+    ax[0].set_title("Prediction Probability")
+    ax[1].set_title("Global AOD")
 
     # Plot the first time series
-    label_names = ["Global AOD", "Southern Hemisphere", "Tropics", "Northern Hemisphere"]
+    label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
+    y_axes = ["SHext -", "trop -", "NHext -"]
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
@@ -267,10 +291,16 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
-            alpha = value if value <= 1.0 else 1.0  # Transparency value based on the time series value
-
-            ax.bar(year, height, color=color, alpha=alpha, width=bar_width, align='center', bottom=current_bottom)
+            img = ax[0].bar(year, height, color=colors[int(11 * value)], width=bar_width, align='center', bottom=current_bottom)
         current_bottom += height
+
+    levels_prob = [0.0, 0.08, 0.16, 0.25, 0.33, 0.41, 0.5, 0.58, 0.66, 0.75, 0.83, 0.91, 1.0]
+    norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
+
+    sm = ScalarMappable(cmap=new_cmap, norm=norm_prob)
+    sm.set_array([])
+
+    cbar = plt.colorbar(sm, ax=ax[0], orientation='horizontal', pad=0.2)
 
     volcanoes = {
         1883: "Krakatau",
@@ -281,26 +311,35 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         1991: "Pinatubo"
     }
 
-    for key, value in volcanoes.items():
-        ax.annotate(value, xy=(key, 0.07), arrowprops={"headwidth": 0.1, "headlength": 10, "width": 20}, rotation=90)
-
     # Set the x-axis limits and labels
-    ax.set_xlim(years[0] - 1, years[-1] + 1)
-    ax.set_xlabel('Year')
+    ax[0].set_xlim(years[0], years[-1])
 
     # Set the y-axis limits and label
-    ax.set_ylim(0, len(label_names) * height)
-    ax.yaxis.set_visible(False)
+    ax[0].set_ylim(0, len(label_names) * height)
+    ax[0].yaxis.set_visible(False)
 
     current_bottom = height / 2
-    for name in label_names:
-        ax.text(years[0] - 2, current_bottom, name, ha='right', va='center')
+    for name in y_axes:
+        ax[0].text(years[0], current_bottom, name, ha='right', va='center')
         current_bottom += height
 
-    # Remove the box around the plot
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
+    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=new_cmap, norm=norm_forcing)
+    #ax[0].set_aspect(40)
+    #ax[1].set_aspect(0.06)
+    ax[1].yaxis.set_visible(False)
+
+    ann_pos = [-6.1, 14.45, 58.16, -8.2, 17.36, 15.13]
+
+    for key, value, pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
+        ax[1].annotate(value, xy=(key, pos), arrowprops={"headwidth": 3, "headlength": 3}, ha='center', fontsize=6)
+
+    cbar = fig.colorbar(img, ax=ax[1], orientation='horizontal', pad=0.2)
+    y_axes = ["50°S -", "0° -", "50°N -"]
+
+    current_bottom = -50
+    for name in y_axes:
+        ax[1].text(years[0], current_bottom, name, ha='right', va='center')
+        current_bottom += 50
 
     # Show the plot
     plt.savefig("{}/overview/{}_categories_graph.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
@@ -310,7 +349,7 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
 def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
     years = [int(cat) for cat in cfg.val_categories]
 
-    forcing = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/glos_jja.nc", "Glossac_Aerosol_Optical_Depth")[:len(years)]
+    forcing = import_forcing("/home/johannes/PycharmProjects/climclass/data/tauttljja.nc", "tauttl")
 
     eval_predictions = {}
     counter = 0
@@ -329,7 +368,7 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
                  color=cfg.timeseries_colors[counter], label=name, alpha=0.5)
         counter = counter + 1
 
-    plt.plot(years, forcing, "k--", label="GloSSAC")
+    #plt.plot(years, forcing, "k--", label="GloSSAC")
     volcanoes = {
         1963: "Agung",
         1982: "El Chichon",
