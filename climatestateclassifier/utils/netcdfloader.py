@@ -47,10 +47,10 @@ def nc_loadchecker(filename, data_type):
     ds1 = ds
     ds = ds.drop_vars(data_type)
 
-    if cfg.lazy_load:
-        data = ds1[data_type]
-    else:
-        data = ds1[data_type].values
+    #if cfg.lazy_load:
+    #     data = ds1[data_type]
+    #else:
+    data = ds1[data_type].values
 
     dims = ds1[data_type].dims
     coords = {key: ds1[data_type].coords[key] for key in ds1[data_type].coords if key != "time"}

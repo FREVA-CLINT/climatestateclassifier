@@ -13,9 +13,11 @@ from matplotlib.colors import ListedColormap
 from .. import config as cfg
 import csv
 
+from ..test import import_forcing
 
-def save_results_as_csv(eval_name, labels, outputs, categories, sample_names):
-    with open('{}/overview/{}.csv'.format(cfg.eval_dir, eval_name), 'w', newline='') as file:
+
+def save_results_as_csv(eval_dir, eval_name, labels, outputs, categories, sample_names):
+    with open('{}/overview/{}.csv'.format(eval_dir, eval_name), 'w', newline='') as file:
         writer = csv.writer(file)
 
         writer.writerow(["Label", "Output", "Category", "Name"])
@@ -24,9 +26,9 @@ def save_results_as_csv(eval_name, labels, outputs, categories, sample_names):
             writer.writerow([labels[i].item(), outputs[i].item(), categories[i], sample_names[i]])
 
 
-def read_results_from_csv(eval_name):
+def read_results_from_csv(eval_dir, eval_name):
     labels, outputs, categories, sample_names = [], [], [], []
-    with open('{}/overview/{}.csv'.format(cfg.eval_dir, eval_name), 'r') as file:
+    with open('{}/overview/{}.csv'.format(eval_dir, eval_name), 'r') as file:
         csvreader = csv.reader(file)
         i = 0
         for row in csvreader:
@@ -243,48 +245,105 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
 
     for i in range(outputs.shape[0]):
-        class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
+        try:
+            class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
+        except ValueError:
+            pass
+
+    class_predictions["Global AOD"] = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttljja.nc", "tauttl")[18:]
 
     # Calculate the width of each bar
     bar_width = 1
 
     # Create a figure and axis
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 2))
 
     # Plot the first time series
-    label_names = ["No Eruption", "Southern Hemisphere", "Tropics", "Northern Hemisphere"]
+    label_names = ["Global AOD", "Southern Hemisphere", "Tropics", "Northern Hemisphere"]
     class_colors = ["gray", "red", "purple", "blue"]
+
+    height = 0.1
 
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
             alpha = value if value <= 1.0 else 1.0  # Transparency value based on the time series value
 
-            ax.bar(year, 0.1, color=color, alpha=alpha, width=bar_width, align='center', bottom=current_bottom)
-        current_bottom += 0.1
+            ax.bar(year, height, color=color, alpha=alpha, width=bar_width, align='center', bottom=current_bottom)
+        current_bottom += height
+
+    volcanoes = {
+        1883: "Krakatau",
+        1902: "Santa Maria",
+        1912: "Katmai",
+        1963: "Agung",
+        1982: "El Chichon",
+        1991: "Pinatubo"
+    }
+
+    for key, value in volcanoes.items():
+        ax.annotate(value, xy=(key, 0.07), arrowprops={"headwidth": 0.1, "headlength": 10, "width": 20}, rotation=90)
 
     # Set the x-axis limits and labels
     ax.set_xlim(years[0] - 1, years[-1] + 1)
     ax.set_xlabel('Year')
 
     # Set the y-axis limits and label
-    ax.set_ylim(0, 0.4)
+    ax.set_ylim(0, len(label_names) * height)
     ax.yaxis.set_visible(False)
 
-    current_bottom = 0.05
+    current_bottom = height / 2
     for name in label_names:
         ax.text(years[0] - 2, current_bottom, name, ha='right', va='center')
-        current_bottom += 0.1
+        current_bottom += height
 
     # Remove the box around the plot
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
-    ax.spines['bottom'].set_linewidth(0.9)
 
     # Show the plot
-    fig.tight_layout()
     plt.savefig("{}/overview/{}_categories_graph.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.clf()
+
+
+def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
+    years = [int(cat) for cat in cfg.val_categories]
+
+    forcing = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/glos_jja.nc", "Glossac_Aerosol_Optical_Depth")[:len(years)]
+
+    eval_predictions = {}
+    counter = 0
+    for name in outputs.keys():
+        class_predictions = {}
+        for label in cfg.label_names:
+            class_predictions[label] = [0 for i in range(len(cfg.val_categories))]
+
+        for i in range(outputs[name].shape[0]):
+            try:
+                class_predictions[cfg.label_names[outputs[name][i]]][cfg.val_categories.index(categories[name][i])] += 1.0 / len(cfg.val_samples)
+            except ValueError:
+                pass
+        eval_predictions[name] = class_predictions
+        plt.plot(years, [1 - min(1, class_predictions["No Eruption"][i]) for i in range(len(class_predictions["No Eruption"]))],
+                 color=cfg.timeseries_colors[counter], label=name, alpha=0.5)
+        counter = counter + 1
+
+    plt.plot(years, forcing, "k--", label="GloSSAC")
+    volcanoes = {
+        1963: "Agung",
+        1982: "El Chichon",
+        1991: "Pinatubo"
+    }
+
+    for key, value in volcanoes.items():
+        plt.annotate(value, xy=(key, 0.1), arrowprops={"width": 20})
+
+    # Set the x-axis limits and labels
+    plt.xlabel('Year')
+    plt.legend()
+
+    plt.savefig("{}/{}_timeseries.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
 
