@@ -44,9 +44,6 @@ def read_results_from_csv(eval_dir, eval_name):
 
 def plot_prediction_overview(outputs, labels, eval_name):
     # Clean predictions
-    pred_indices = outputs.argmax(1)
-    gt_indices = labels.argmax(1)
-
     total_numbers = []
     total_numbers_predictions = []
     correct_predictions = []
@@ -239,9 +236,9 @@ def plot_predictions_by_category(outputs, labels, categories, eval_name):
 
 
 def plot_predictions_by_category_graph(outputs, categories, eval_name):
-    levels_forcing = [0.025, 0.03, 0.04, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.3]
+    levels_forcing = [0.0, 0.01, 0.025, 0.03, 0.04, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.3]
     norm_forcing = matplotlib.colors.BoundaryNorm(levels_forcing, 13)
-    colors_forcing = ["#FFFECA", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704", "#FF3802", "#800026"]
+    colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704", "#FF3802", "#800026"]
 
     cmap_forcing = matplotlib.colors.ListedColormap(
         colors_forcing)
@@ -260,21 +257,24 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         except ValueError:
             pass
 
-    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    global_aod = import_forcing("/home/johannes/PycharmProjects/climclass/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
-    global_mean_aod = global_mean_aod / np.max(global_mean_aod)
+    global_aod = global_aod * 0.0# np.max(global_mean_aod)
+    global_aod[0:800] += 3.0
+    global_aod[800:] -= 3.0
     class_predictions["Global AOD"] = global_mean_aod
+    print(global_aod.shape)
 
     # Calculate the width of each bar
     bar_width = 1
 
     # Create a figure and axis
-    fig, ax = plt.subplots(nrows=2, figsize=(10, 4))
+    fig, ax = plt.subplots(nrows=2, figsize=(15, 4.5))
     fig.tight_layout()
 
-    ax[0].set_title("Prediction Probability")
-    ax[1].set_title("Global AOD")
+    #ax[0].set_title("MPI-GE Member Classifications")
+    #ax[1].set_title("Stratospheric Aerosol Optical Depth Field", loc="bottom")
 
     # Plot the first time series
     label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
@@ -284,30 +284,32 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     height = 0.1
     colors_prob = ["#FFFFFF", "#FFF0F0", "#FFE1E1", "#FFD2D2", "#FFC3C3", "#FFB4B4", "#FFA5A5", "#FF9696", "#FF8787", "#FF7878", "#FF6969", "#FF0000"]
 
+    cmap_prob = matplotlib.cm.RdBu_r
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
-            img = ax[0].bar(year, height, color=colors_prob[int(11 * value)], width=bar_width, align='center', bottom=current_bottom)
+            img = ax[0].bar(year, height, color=cmap_prob(value), width=bar_width, align='center', bottom=current_bottom)
         current_bottom += height
 
     levels_prob = [0.0, 0.08, 0.16, 0.25, 0.33, 0.41, 0.5, 0.58, 0.66, 0.75, 0.83, 0.91, 1.0]
-    norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
+    #norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
 
-    cmap_prob = matplotlib.colors.ListedColormap(
-        colors_prob)
-    cmap_prob = cmap_prob(np.arange(cmap_prob.N))
-    cmap_prob = ListedColormap(cmap_prob)
+    #cmap_prob = matplotlib.colors.ListedColormap(
+    #    colors_prob)
+    #cmap_prob = cmap_prob(np.arange(cmap_prob.N))
+    #cmap_prob = ListedColormap(cmap_prob)
 
-    sm = ScalarMappable(cmap=cmap_prob, norm=norm_prob)
+    sm = ScalarMappable(cmap=cmap_prob)
     sm.set_array([])
 
-    cbar = plt.colorbar(sm, ax=ax[0], orientation='horizontal', pad=0.2)
+    cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
 
     volcanoes = {
         1883: "Krakatau",
         1902: "Santa Maria",
         1912: "Katmai",
         1963: "Agung",
+        1974: "Fuego",
         1982: "El Chichon",
         1991: "Pinatubo"
     }
@@ -324,17 +326,16 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         ax[0].text(years[0], current_bottom, name, ha='right', va='center')
         current_bottom += height
 
-    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
+    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_prob)
     #ax[0].set_aspect(40)
     #ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
-
-    ann_pos = [-6.1, 14.45, 58.16, -8.2, 17.36, 15.13]
+    ann_pos = [-6.1, 14.45, 58.16, -8.2, 14.28, 17.36, 15.13]
 
     for key, value, pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
-        ax[1].annotate(value, xy=(key, pos), arrowprops={"headwidth": 3, "headlength": 3}, ha='center', fontsize=6)
+        ax[1].annotate(value, xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
 
-    cbar = fig.colorbar(img, ax=ax[1], orientation='horizontal', pad=0.2)
+    cbar = fig.colorbar(img, ax=ax[1], location="right", ticks=[-3, -1.5, 0.0, 1.5, 3])
     y_axes = ["50°S -", "0° -", "50°N -"]
 
     current_bottom = -50
@@ -350,9 +351,10 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
 def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
     years = [int(cat) for cat in cfg.val_categories]
 
-    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttljja.nc", "tauttl")[3*(years[0]-1850):3*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    global_aod = import_forcing("/home/johannes/PycharmProjects/climclass/paper/tauttljja.nc", "tauttl")[3*(years[0]-1850):3*(years[0]-1850 + len(years) - (years[-1]-1999))]
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 3), axis=1)
+    global_mean_aod = np.append(global_mean_aod, [0.0])
 
     eval_predictions = {}
     for name in outputs.keys():
@@ -381,22 +383,27 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
         for key,value in combined_predictions.items():
             total_numbers[i] += value[i]
 
-    fig, ax1 = plt.subplots()
+    fig = plt.figure(figsize=(10, 3))
 
     color = cfg.timeseries_colors[0]
-    ax1.set_ylabel('Avg Probability', color=color)
-    ax1.plot(years, [(combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
-                      combined_predictions["Tropics"][i]) / total_numbers[i] if total_numbers[i] != 0 else 0 for i in
-                     range(len(combined_predictions["No Eruption"]))],
-             color=cfg.timeseries_colors[0], label="Avg Probability")
+    ax1 = fig.add_axes([0, 0, 1, 1])
+    #ax2 = fig.add_axes()
+    ax2 = ax1.twinx()
+    ax1.set_ylabel('Predicted Eruptions in %', color=color)
+    lns1 = ax1.plot(years, [((combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
+                    combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0 for i in
+                    range(len(combined_predictions["No Eruption"]))],
+                    color=cfg.timeseries_colors[0], label="Predicted Eruptions")
     ax1.tick_params(axis='y', labelcolor=color)
 
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
     color = 'black'
-    ax2.set_ylabel('Global Mean AOD', color=color)  # we already handled the x-label with ax1
-    ax2.plot(years, global_mean_aod, "k--", label="Global Mean AOD")
+    ax2.set_ylabel('Average Global AOD', color=color)  # we already handled the x-label with ax1
+    lns2 = ax2.plot(years, global_mean_aod, "k--", label="Spatial & Monthly Mean AOD")
     ax2.tick_params(axis='y', labelcolor=color)
+
+    leg = lns1 + lns2
+    labs = [l.get_label() for l in leg]
+    ax1.legend(leg, labs, loc=0)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
@@ -410,11 +417,12 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
         1991: "Pinatubo"
     }
 
+    ann_pos = [-6.1, 14.45, 58.16, -8.2, 14.28, 17.36, 15.13]
+
     for key, value in volcanoes.items():
-        plt.annotate(value, xy=(key, 0), arrowprops={"width": 20})
+        plt.annotate(value, xy=(key + 0.1, 0.0065), arrowprops={"width": 20})
 
     # Set the x-axis limits and labels
-
     plt.savefig("{}/{}_timeseries.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
 
