@@ -117,8 +117,16 @@ def evaluate(arg_file=None, prog_func=None):
                 labels = labels.argmax(1)
                 save_results_as_csv(cfg.eval_dir, cfg.eval_names[i_model], labels, outputs, categories, sample_names)
                 if cfg.plot_explanations:
-                    plot_explanations(inputs, dims, labels, outputs, sample_names, categories, explanations,
-                                      eval_name="{}".format(cfg.eval_names[i_model]))
+                    #plot_explanations(inputs, dims, labels, outputs, sample_names, categories, explanations,
+                    #                  eval_name="{}".format(cfg.eval_names[i_model]))
+                    plot_explanations(torch.mean(inputs, dim=0).unsqueeze(0),
+                                      dims,
+                                      labels[0].unsqueeze(0),
+                                      outputs[0].unsqueeze(0),
+                                      [sample_names[0]],
+                                      [categories[0]],
+                                      torch.mean(explanations, dim=0).unsqueeze(0),
+                                      eval_name="average_{}".format(cfg.eval_names[i_model]))
 
             if cfg.plot_prediction_overview:
                 #plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
