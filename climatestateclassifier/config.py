@@ -64,8 +64,8 @@ def global_args(parser, arg_file=None, prog_func=None):
 
 def set_common_args():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--data-root-dir', type=str, default='../data/',
-                            help="Root directory containing the climate datasets")
+    arg_parser.add_argument('--data-root-dirs', type=str_list, default='../data/',
+                            help="Comma separated list of root directories containing the climate datasets")
     arg_parser.add_argument('--log-dir', type=str, default='logs/', help="Directory where the log files will be stored")
     arg_parser.add_argument('--data-types', type=str_list, default='tsurf',
                             help="Comma separated list of input variable types")

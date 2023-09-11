@@ -15,7 +15,7 @@ from .utils.plot_utils import plot_single_predictions, plot_explanations, \
 
 def create_prediction(model_name, val_samples):
     # load data
-    dataset = NetCDFLoader(cfg.data_root_dir, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
+    dataset = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
     input = torch.stack([dataset[j][0] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     label = torch.stack([dataset[j][1] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     category = [dataset[j][2] for j in range(dataset.__len__())]

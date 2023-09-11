@@ -75,7 +75,7 @@ def load_netcdf(data_paths, data_types, keep_dss=False):
 
 
 class NetCDFLoader(Dataset):
-    def __init__(self, data_root, data_types, sample_names, sample_categories, labels):
+    def __init__(self, data_root_dirs, data_types, sample_names, sample_categories, labels):
         super(NetCDFLoader, self).__init__()
 
         self.labels = labels
@@ -91,21 +91,22 @@ class NetCDFLoader(Dataset):
             for name in sample_names:
                 for category in sample_categories:
                     for j in range(len(labels)):
-                        # data names must be in the format: <category_name><sample_name><data_type><class_label>
-                        data_path = '{:s}/{}{}{}{}.nc'.format(data_root, category, name, data_types[i], labels[j])
-                        if exists(data_path):
-                            if self.xr_dss is not None:
-                                data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]])
-                            else:
-                                self.xr_dss, data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]],
-                                                                                   keep_dss=True)
-                            input_data.append(data)
-                            if i == 0:
-                                input_class = np.zeros(len(labels))
-                                input_class[j] = 1
-                                self.input_labels.append(input_class)
-                                self.sample_categories.append(category)
-                                self.sample_names.append(name)
+                        for directory in data_root_dirs:
+                            # data names must be in the format: <category_name><sample_name><data_type><class_label>
+                            data_path = '{:s}/{}{}{}{}.nc'.format(directory, category, name, data_types[i], labels[j])
+                            if exists(data_path):
+                                if self.xr_dss is not None:
+                                    data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]])
+                                else:
+                                    self.xr_dss, data, _, self.img_sizes = load_netcdf([data_path], [data_types[i]],
+                                                                                       keep_dss=True)
+                                input_data.append(data)
+                                if i == 0:
+                                    input_class = np.zeros(len(labels))
+                                    input_class[j] = 1
+                                    self.input_labels.append(input_class)
+                                    self.sample_categories.append(category)
+                                    self.sample_names.append(name)
             if input_data:
                 self.input.append(input_data)
         self.length = len(self.input_labels)
