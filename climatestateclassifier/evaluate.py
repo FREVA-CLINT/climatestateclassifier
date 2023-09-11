@@ -129,9 +129,9 @@ def evaluate(arg_file=None, prog_func=None):
                                       eval_name="average_{}".format(cfg.eval_names[i_model]))
 
             if cfg.plot_prediction_overview:
-                #plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
-                #plot_class_predictions(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
-                #plot_predictions_by_category(outputs, labels, categories, eval_name="{}".format(cfg.eval_names[i_model]))
+                plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
+                plot_class_predictions(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
+                plot_predictions_by_category(outputs, labels, categories, eval_name="{}".format(cfg.eval_names[i_model]))
                 plot_predictions_by_category_graph(outputs, categories, eval_name="{}".format(cfg.eval_names[i_model]))
             if cfg.plot_single_predictions:
                 plot_single_predictions(outputs, labels, categories, sample_names, eval_name="{}".format(cfg.eval_names[i_model]))
