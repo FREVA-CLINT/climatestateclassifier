@@ -257,7 +257,7 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         except ValueError:
             pass
 
-    global_aod = import_forcing("/home/johannes/PycharmProjects/climclass/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
     global_aod = global_aod * 0.0# np.max(global_mean_aod)
@@ -351,10 +351,15 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
 def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
     years = [int(cat) for cat in cfg.val_categories]
 
-    global_aod = import_forcing("/home/johannes/PycharmProjects/climclass/paper/tauttljja.nc", "tauttl")[3*(years[0]-1850):3*(years[0]-1850 + len(years) - (years[-1]-1999))]
-    global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
-    global_mean_aod = np.mean(global_mean_aod.reshape(-1, 3), axis=1)
-    global_mean_aod = np.append(global_mean_aod, [0.0])
+    cmip6aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/cmip6aod.nc", "aod")
+    cmip6aod_mean = np.nanmean(cmip6aod, axis=(1, 2))
+    cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
+    cmip6aod_mean = cmip6aod_mean[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+
+    glossacaod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/GloSSAC_V2.0.nc", "Glossac_Aerosol_Optical_Depth")
+    glossacaod_mean = np.nanmean(glossacaod, axis=(1, 2))
+    glossacaod_mean = np.convolve(glossacaod_mean, np.ones(12) / 12, mode='same')
+    glossacaod_mean = glossacaod_mean[:12 * 21]
 
     eval_predictions = {}
     for name in outputs.keys():
@@ -390,37 +395,21 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
     #ax2 = fig.add_axes()
     ax2 = ax1.twinx()
     ax1.set_ylabel('Predicted Eruptions in %', color=color)
-    lns1 = ax1.plot(years, [((combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
+    lns1 = ax1.bar(years, [((combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
                     combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0 for i in
                     range(len(combined_predictions["No Eruption"]))],
                     color=cfg.timeseries_colors[0], label="Predicted Eruptions")
     ax1.tick_params(axis='y', labelcolor=color)
-
     color = 'black'
     ax2.set_ylabel('Average Global AOD', color=color)  # we already handled the x-label with ax1
-    lns2 = ax2.plot(years, global_mean_aod, "k--", label="Spatial & Monthly Mean AOD")
+    lns2 = ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip6aod_mean))], [aod * 10 for aod in cmip6aod_mean], "r--", label="CMPI6 AOD")
+    lns3 = ax2.plot([1979 + (1.0/12) * x for x in range(len(glossacaod_mean))], glossacaod_mean, "b--", label="GloSSAC AOD")
     ax2.tick_params(axis='y', labelcolor=color)
-
-    leg = lns1 + lns2
-    labs = [l.get_label() for l in leg]
-    ax1.legend(leg, labs, loc=0)
+    ax2.margins(x=0, y=0.01)
+    ax1.margins(x=0)
+    plt.figlegend(loc='upper center', fancybox=True, framealpha=1, shadow=True)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
-
-    volcanoes = {
-        1883: "Krakatau",
-        1902: "Santa Maria",
-        1912: "Katmai",
-        1963: "Agung",
-        1974: "Fuego",
-        1982: "El Chichon",
-        1991: "Pinatubo"
-    }
-
-    ann_pos = [-6.1, 14.45, 58.16, -8.2, 14.28, 17.36, 15.13]
-
-    for key, value in volcanoes.items():
-        plt.annotate(value, xy=(key + 0.1, 0.0065), arrowprops={"width": 20})
 
     # Set the x-axis limits and labels
     plt.savefig("{}/{}_timeseries.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
