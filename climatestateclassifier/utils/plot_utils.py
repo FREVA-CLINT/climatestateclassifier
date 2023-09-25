@@ -236,7 +236,7 @@ def plot_predictions_by_category(outputs, labels, categories, eval_name):
 
 
 def plot_predictions_by_category_graph(outputs, categories, eval_name):
-    levels_forcing = [0.0, 0.01, 0.025, 0.03, 0.04, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.3]
+    levels_forcing = [0.0, 0.01, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.125, 0.15, 0.175, 0.2, 0.3]
     norm_forcing = matplotlib.colors.BoundaryNorm(levels_forcing, 13)
     colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704", "#FF3802", "#800026"]
 
@@ -260,17 +260,16 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
-    global_aod = global_aod * 0.0# np.max(global_mean_aod)
-    global_aod[0:800] += 3.0
-    global_aod[800:] -= 3.0
     class_predictions["Global AOD"] = global_mean_aod
-    print(global_aod.shape)
 
     # Calculate the width of each bar
     bar_width = 1
 
+    font_size=12
+    matplotlib.rcParams.update({'font.size': font_size})
+
     # Create a figure and axis
-    fig, ax = plt.subplots(nrows=2, figsize=(15, 4.5))
+    fig, ax = plt.subplots(nrows=2, figsize=(13, 4.5))
     fig.tight_layout()
 
     #ax[0].set_title("MPI-GE Member Classifications")
@@ -278,13 +277,13 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
 
     # Plot the first time series
     label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    y_axes = ["SHext -", "trop -", "NHext -"]
+    y_axes = ["SH ext -", "TR -", "NH ext -"]
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
     colors_prob = ["#FFFFFF", "#FFF0F0", "#FFE1E1", "#FFD2D2", "#FFC3C3", "#FFB4B4", "#FFA5A5", "#FF9696", "#FF8787", "#FF7878", "#FF6969", "#FF0000"]
 
-    cmap_prob = matplotlib.cm.RdBu_r
+    cmap_prob = matplotlib.cm.Greys
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
@@ -305,13 +304,13 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
 
     volcanoes = {
-        1883: "Krakatau",
-        1902: "Santa Maria",
-        1912: "Katmai",
-        1963: "Agung",
-        1974: "Fuego",
-        1982: "El Chichon",
-        1991: "Pinatubo"
+        1883: ("Krakatau", "black"),
+        1902: ("Santa Maria", "blue"),
+        1912: ("Katmai", "yellow"),
+        1963: ("Agung", "green"),
+        1974: ("Fuego", "red"),
+        1982: ("El Chichon", "gray"),
+        1991: ("Pinatubo", "white")
     }
 
     # Set the x-axis limits and labels
@@ -326,16 +325,22 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         ax[0].text(years[0], current_bottom, name, ha='right', va='center')
         current_bottom += height
 
-    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_prob)
+    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
     #ax[0].set_aspect(40)
     #ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
-    ann_pos = [-6.1, 14.45, 58.16, -8.2, 14.28, 17.36, 15.13]
+    ann_pos = [-6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
 
-    for key, value, pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
-        ax[1].annotate(value, xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
+    for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
+        #if value =="El Chichon":
+        #    ax[1].annotate(value, xy=(key-20, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
+        #else:
+        #ax[1].text(key - 0.5 * len(value), pos - factor * len(value), value, fontsize=font_size, rotation=45)
+        #ax[1].annotate(" ", xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center',
+        #               fontsize=10)
+        ax[1].plot(key, pos, 'o', ms=7, mec='k', color=color)
 
-    cbar = fig.colorbar(img, ax=ax[1], location="right", ticks=[-3, -1.5, 0.0, 1.5, 3])
+    cbar = fig.colorbar(img, ax=ax[1], location="right", ticks=[0.0, 0.03, 0.07, 0.15, 0.3])
     y_axes = ["50°S -", "0° -", "50°N -"]
 
     current_bottom = -50
