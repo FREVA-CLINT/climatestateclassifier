@@ -353,12 +353,17 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
 
     cmip6aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/cmip6aod.nc", "aod")
     cmip6aod_mean = np.nanmean(cmip6aod, axis=(1, 2))
-    cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
+    #cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
     cmip6aod_mean = cmip6aod_mean[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+
+    cmip5aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
+    cmip5aod_mean = np.nanmean(cmip5aod, axis=(1, 2))
+    # cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
+    cmip5aod_mean = cmip5aod_mean[12 * (years[0] - 1850):12 * (years[0] - 1850 + len(years) - (years[-1] - 1999))]
 
     glossacaod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/GloSSAC_V2.0.nc", "Glossac_Aerosol_Optical_Depth")
     glossacaod_mean = np.nanmean(glossacaod, axis=(1, 2))
-    glossacaod_mean = np.convolve(glossacaod_mean, np.ones(12) / 12, mode='same')
+    #glossacaod_mean = np.convolve(glossacaod_mean, np.ones(12) / 12, mode='same')
     glossacaod_mean = glossacaod_mean[:12 * 21]
 
     eval_predictions = {}
@@ -388,26 +393,28 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
         for key,value in combined_predictions.items():
             total_numbers[i] += value[i]
 
-    fig = plt.figure(figsize=(10, 3))
+    fig = plt.figure(figsize=(10, 2))
 
     color = cfg.timeseries_colors[0]
     ax1 = fig.add_axes([0, 0, 1, 1])
-    #ax2 = fig.add_axes()
+
     ax2 = ax1.twinx()
     ax1.set_ylabel('Predicted Eruptions in %', color=color)
-    lns1 = ax1.bar(years, [((combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
-                    combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0 for i in
-                    range(len(combined_predictions["No Eruption"]))],
-                    color=cfg.timeseries_colors[0], label="Predicted Eruptions")
+    ax1.bar(years, [((combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
+            combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0 for i in
+            range(len(combined_predictions["No Eruption"]))],
+            color=cfg.timeseries_colors[0], label="Predicted Eruptions")
     ax1.tick_params(axis='y', labelcolor=color)
     color = 'black'
     ax2.set_ylabel('Average Global AOD', color=color)  # we already handled the x-label with ax1
-    lns2 = ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip6aod_mean))], [aod * 10 for aod in cmip6aod_mean], "r--", label="CMPI6 AOD")
-    lns3 = ax2.plot([1979 + (1.0/12) * x for x in range(len(glossacaod_mean))], glossacaod_mean, "b--", label="GloSSAC AOD")
+    #ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip5aod_mean))], [aod for aod in cmip5aod_mean], "y--", label="CMIP5 AOD")
+    ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip6aod_mean))], [aod * 10 for aod in cmip6aod_mean], "r--", label="CMIP6 AOD")
+    ax2.plot([1979 + (1.0/12) * x for x in range(len(glossacaod_mean))], glossacaod_mean, "b--", label="GloSSAC AOD")
     ax2.tick_params(axis='y', labelcolor=color)
     ax2.margins(x=0, y=0.01)
     ax1.margins(x=0)
-    plt.figlegend(loc='upper center', fancybox=True, framealpha=1, shadow=True)
+    plt.figlegend(loc='upper center', fancybox=True, framealpha=1, shadow=True, fontsize='small',  bbox_to_anchor=(0.5, 0.99), ncol=2)
+    ax1.set_title("Evaluation {}".format(cfg.timeseries_names[0]))
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
