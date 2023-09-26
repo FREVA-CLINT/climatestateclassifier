@@ -257,10 +257,18 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         except ValueError:
             pass
 
-    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    #global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
     class_predictions["Global AOD"] = global_mean_aod
+
+    before_fill = np.zeros((12*40, 90, 1))
+    after_fill = np.zeros((12*15, 90, 1))
+
+    global_aod = np.concatenate((before_fill, global_aod, after_fill), axis=0)
+
+    print(global_aod.shape)
 
     # Calculate the width of each bar
     bar_width = 1
@@ -304,6 +312,7 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
 
     volcanoes = {
+        1815: ("Tambora", "magenta"),
         1883: ("Krakatau", "black"),
         1902: ("Santa Maria", "blue"),
         1912: ("Katmai", "yellow"),
@@ -329,13 +338,15 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     #ax[0].set_aspect(40)
     #ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
-    ann_pos = [-6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
+    ann_pos = [-8.24, -6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
 
     for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
-        #if value =="El Chichon":
+        if value =="El Chichon":
+            factor = 5
         #    ax[1].annotate(value, xy=(key-20, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
-        #else:
-        #ax[1].text(key - 0.5 * len(value), pos - factor * len(value), value, fontsize=font_size, rotation=45)
+        else:
+            factor = 6
+        ax[1].text(key - 0.5*len(name), pos - factor*len(name), name, fontsize=font_size, rotation=45)
         #ax[1].annotate(" ", xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center',
         #               fontsize=10)
         ax[1].plot(key, pos, 'o', ms=7, mec='k', color=color)
