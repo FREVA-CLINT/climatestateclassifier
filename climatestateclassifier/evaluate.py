@@ -10,7 +10,8 @@ from .utils.io import load_ckpt
 from .utils.netcdfloader import NetCDFLoader
 from .utils.plot_utils import plot_single_predictions, plot_explanations, \
     plot_class_predictions, plot_predictions_by_category, plot_prediction_overview, plot_predictions_by_category_graph, \
-    read_results_from_csv, save_results_as_csv, plot_predictions_by_category_timeseries
+    read_results_from_csv, save_results_as_csv, plot_predictions_by_category_timeseries, \
+    plot_predictions_by_category_graph_1800
 
 
 def create_prediction(model_name, val_samples):
@@ -132,8 +133,9 @@ def evaluate(arg_file=None, prog_func=None):
                 #plot_prediction_overview(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
                 #plot_class_predictions(outputs, labels, eval_name="{}".format(cfg.eval_names[i_model]))
                 #plot_predictions_by_category(outputs, labels, categories, eval_name="{}".format(cfg.eval_names[i_model]))
-                plot_predictions_by_category_graph(outputs, categories, eval_name="{}".format(cfg.eval_names[i_model]))
+                plot_predictions_by_category_graph_1800(outputs, categories, eval_name="{}".format(cfg.eval_names[i_model]))
             if cfg.plot_single_predictions:
+                print(categories)
                 plot_single_predictions(outputs, labels, categories, sample_names, eval_name="{}".format(cfg.eval_names[i_model]))
 
 

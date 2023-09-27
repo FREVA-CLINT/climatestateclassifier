@@ -439,6 +439,149 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
     plt.clf()
 
 
+def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
+    levels_forcing = [0.0, 0.01, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.125, 0.15, 0.175, 0.2, 0.3]
+    norm_forcing = matplotlib.colors.BoundaryNorm(levels_forcing, 13)
+    colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704", "#FF3802", "#800026"]
+
+    cmap_forcing = matplotlib.colors.ListedColormap(
+        colors_forcing)
+    cmap_forcing = cmap_forcing(np.arange(cmap_forcing.N))
+    cmap_forcing = ListedColormap(cmap_forcing)
+
+    years = [int(cat) for cat in cfg.val_categories]
+
+    class_predictions = {}
+    for name in cfg.label_names:
+        class_predictions[name] = [0 for i in range(len(cfg.val_categories))]
+
+    for i in range(outputs.shape[0]):
+        try:
+            class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
+        except ValueError:
+            pass
+
+    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/eva_holo_total.nc", "aod")#[12*(years[0]-1800):12*(years[0]-1800 + len(years) - (years[-1]-1999))]
+    global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
+    global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
+    class_predictions["Global AOD"] = global_mean_aod
+
+    print(global_aod.shape)
+
+
+    global_aod = global_aod[:, :, 9]
+
+    #global_aod = np.flip(global_aod, axis=0)
+    global_aod = np.flip(global_aod, axis=1)
+    #global_aod = np.transpose(global_aod)
+    print(global_aod.shape)
+
+
+    # Calculate the width of each bar
+    bar_width = 1
+
+    font_size=12
+    matplotlib.rcParams.update({'font.size': font_size})
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(nrows=2, figsize=(13, 4.5))
+    fig.tight_layout()
+
+    #ax[0].set_title("MPI-GE Member Classifications")
+    #ax[1].set_title("Stratospheric Aerosol Optical Depth Field", loc="bottom")
+
+    # Plot the first time series
+    label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
+    y_axes = ["SH ext -", "TR -", "NH ext -"]
+    class_colors = ["gray", "red", "purple", "blue"]
+
+    height = 0.1
+    colors_prob = ["#FFFFFF", "#FFF0F0", "#FFE1E1", "#FFD2D2", "#FFC3C3", "#FFB4B4", "#FFA5A5", "#FF9696", "#FF8787", "#FF7878", "#FF6969", "#FF0000"]
+
+    cmap_prob = matplotlib.cm.Greys
+    current_bottom = 0.0
+    for name, color in zip(label_names, class_colors):
+        for year, value in zip(years, class_predictions[name]):
+            img = ax[0].bar(year, height, color=cmap_prob(value), width=bar_width, align='center', bottom=current_bottom)
+        current_bottom += height
+
+    levels_prob = [0.0, 0.08, 0.16, 0.25, 0.33, 0.41, 0.5, 0.58, 0.66, 0.75, 0.83, 0.91, 1.0]
+    #norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
+
+    #cmap_prob = matplotlib.colors.ListedColormap(
+    #    colors_prob)
+    #cmap_prob = cmap_prob(np.arange(cmap_prob.N))
+    #cmap_prob = ListedColormap(cmap_prob)
+
+    sm = ScalarMappable(cmap=cmap_prob)
+    sm.set_array([])
+
+    cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
+
+    volcanoes = {
+        1809: ("Unknown", "magenta"),
+        1815: ("Tambora", "magenta"),
+        1822: ("Galunggung", "magenta"),
+        1831: ("Babuyan Claro", "magenta"),
+        1835: ("Cosigüina", "magenta"),
+        1853: ("Toya", "magenta"),
+        1856: ("Hokkaido-Komagatake", "magenta"),
+        1861: ("Makian", "magenta"),
+        1873: ("Grímsvötn", "magenta"),
+        1875: ("Askja", "magenta"),
+        1883: ("Krakatau", "magenta"),
+        1886: ("Okataina", "magenta"),
+        #1902: ("Santa Maria", "blue"),
+        #1912: ("Katmai", "yellow"),
+        #1963: ("Agung", "green"),
+        #1974: ("Fuego", "red"),
+        #1982: ("El Chichon", "gray"),
+        #1991: ("Pinatubo", "white")
+    }
+
+    # Set the x-axis limits and labels
+    ax[0].set_xlim(years[0], years[-1])
+
+    # Set the y-axis limits and label
+    ax[0].set_ylim(0, len(label_names) * height)
+    ax[0].yaxis.set_visible(False)
+
+    current_bottom = height / 2
+    for name in y_axes:
+        ax[0].text(years[0], current_bottom, name, ha='right', va='center')
+        current_bottom += height
+
+    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
+    #ax[0].set_aspect(40)
+    #ax[1].set_aspect(0.06)
+    ax[1].yaxis.set_visible(False)
+    #ann_pos = [-8.24, -7.25, 19.52, 12.97, -6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
+    ann_pos = [0.0, -8.24, -7.25, 19.52, 12.97, 42.50, 42.06, 0.32, 64.40, 65.03, -6.1, -38.12]
+
+    for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
+        if value =="El Chichon":
+            factor = 5
+        #    ax[1].annotate(value, xy=(key-20, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
+        else:
+            factor = 4
+        ax[1].text(key - (1 + 0.1*len(name)), pos - (2 + factor*len(name)), name, fontsize=font_size, rotation=45)
+        #ax[1].annotate(" ", xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center',
+        #               fontsize=10)
+        ax[1].plot(key, pos, 'o', ms=7, mec='k', color=color)
+
+    cbar = fig.colorbar(img, ax=ax[1], location="right", ticks=[0.0, 0.03, 0.07, 0.15, 0.3])
+    y_axes = ["50°S -", "0° -", "50°N -"]
+
+    current_bottom = -50
+    for name in y_axes:
+        ax[1].text(years[0], current_bottom, name, ha='right', va='center')
+        current_bottom += 50
+
+    # Show the plot
+    plt.savefig("{}/overview/{}_categories_graph.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
+    plt.clf()
+
+
 def plot_single_explanation(explanations, ax, dims, pad=0.13):
     # color map
     if not cfg.cmap_colors:
