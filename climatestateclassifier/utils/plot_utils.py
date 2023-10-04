@@ -257,18 +257,11 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         except ValueError:
             pass
 
-    #global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
-    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
+    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    #global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
     class_predictions["Global AOD"] = global_mean_aod
-
-    before_fill = np.zeros((12*40, 90, 1))
-    after_fill = np.zeros((12*15, 90, 1))
-
-    global_aod = np.concatenate((before_fill, global_aod, after_fill), axis=0)
-
-    print(global_aod.shape)
 
     # Calculate the width of each bar
     bar_width = 1
@@ -280,12 +273,9 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     fig, ax = plt.subplots(nrows=2, figsize=(13, 4.5))
     fig.tight_layout()
 
-    #ax[0].set_title("MPI-GE Member Classifications")
-    #ax[1].set_title("Stratospheric Aerosol Optical Depth Field", loc="bottom")
-
     # Plot the first time series
     label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    y_axes = ["SH ext -", "TR -", "NH ext -"]
+    y_axes = ["SH -", "TR -", "NH -"]
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
@@ -312,7 +302,6 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
 
     volcanoes = {
-        1815: ("Tambora", "magenta"),
         1883: ("Krakatau", "black"),
         1902: ("Santa Maria", "blue"),
         1912: ("Katmai", "yellow"),
@@ -338,18 +327,13 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     #ax[0].set_aspect(40)
     #ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
-    ann_pos = [-8.24, -6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
+    ann_pos = [-6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
 
+    i = 1
     for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
-        if value =="El Chichon":
-            factor = 5
-        #    ax[1].annotate(value, xy=(key-20, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
-        else:
-            factor = 6
-        ax[1].text(key - 0.5*len(name), pos - factor*len(name), name, fontsize=font_size, rotation=45)
-        #ax[1].annotate(" ", xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center',
-        #               fontsize=10)
-        ax[1].plot(key, pos, 'o', ms=7, mec='k', color=color)
+        ax[1].text(key - 2.3, pos - 15, i, fontsize=font_size)
+        ax[1].plot(key, pos, 'o', ms=7, mec='k', color="white")
+        i += 1
 
     cbar = fig.colorbar(img, ax=ax[1], location="right", ticks=[0.0, 0.03, 0.07, 0.15, 0.3])
     y_axes = ["50°S -", "0° -", "50°N -"]
@@ -480,7 +464,7 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     # Calculate the width of each bar
     bar_width = 1
 
-    font_size=12
+    font_size=16
     matplotlib.rcParams.update({'font.size': font_size})
 
     # Create a figure and axis
@@ -492,7 +476,7 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
 
     # Plot the first time series
     label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    y_axes = ["SH ext -", "TR -", "NH ext -"]
+    y_axes = ["SH -", "TR -", "NH -"]
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
@@ -556,18 +540,16 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     #ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
     #ann_pos = [-8.24, -7.25, 19.52, 12.97, -6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
-    ann_pos = [0.0, -8.24, -7.25, 19.52, 12.97, 42.50, 42.06, 0.32, 64.40, 65.03, -6.1, -38.12]
+    ann_pos = [20.0, -8.24, -7.25, 19.52, 12.97, 42.50, 42.06, 0.32, 64.40, 65.03, -6.1, -38.12]
 
+    i = 1
     for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
-        if value =="El Chichon":
-            factor = 5
-        #    ax[1].annotate(value, xy=(key-20, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center', fontsize=10)
+        ax[1].text(key - 2, pos - 28 - len(str(i)), i, fontsize=font_size)
+        if i == 1:
+            ax[1].text(key-1.18, pos-102, '------------------', color="red", rotation=90)
         else:
-            factor = 4
-        ax[1].text(key - (1 + 0.1*len(name)), pos - (2 + factor*len(name)), name, fontsize=font_size, rotation=45)
-        #ax[1].annotate(" ", xy=(key, pos), arrowprops={"headwidth": 5, "headlength": 5}, ha='center',
-        #               fontsize=10)
-        ax[1].plot(key, pos, 'o', ms=7, mec='k', color=color)
+            ax[1].plot(key, pos, 'o', ms=7, mec='k', color="white")
+        i += 1
 
     cbar = fig.colorbar(img, ax=ax[1], location="right", ticks=[0.0, 0.03, 0.07, 0.15, 0.3])
     y_axes = ["50°S -", "0° -", "50°N -"]
