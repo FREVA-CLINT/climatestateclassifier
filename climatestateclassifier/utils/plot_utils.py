@@ -628,6 +628,11 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
         for k in range(len(d.keys())):
             table[(0, k)].get_text().set_color('white')
 
+        if cfg.lons:
+            dims["lon"] = dims["lon"][:cfg.lons]
+        if cfg.lats:
+            dims["lat"] = dims["lat"][:cfg.lats]
+
         # Plot inputs
         for time in range(inputs.shape[1]):
             ax[time, 0].axis('off')

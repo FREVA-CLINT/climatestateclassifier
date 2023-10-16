@@ -111,6 +111,11 @@ class NetCDFLoader(Dataset):
                 self.input.append(input_data)
         self.length = len(self.input_labels)
 
+        if cfg.lats:
+            self.img_sizes = ((cfg.lats, self.img_sizes[0][0]),)
+        if cfg.lons:
+            self.img_sizes = ((self.img_sizes[0][1], cfg.lons),)
+
         if cfg.normalization:
             self.data_normalizer = DataNormalizer(self.input, cfg.normalization)
 
@@ -126,6 +131,11 @@ class NetCDFLoader(Dataset):
             input_data += data
 
         input_data = torch.cat(input_data)
+        if cfg.lats:
+            input_data = input_data[:, :cfg.lats, :]
+        if cfg.lons:
+            input_data = input_data[:, :, :cfg.lons]
+
         input_labels = torch.from_numpy(np.nan_to_num(self.input_labels[index])).to(torch.float32)
         return input_data, input_labels, self.sample_categories[index], self.sample_names[index]
 
