@@ -638,7 +638,7 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
             ax[time, 0].axis('off')
             ax[time, 0].axis('tight')
             for var in range(inputs.shape[2]):
-                vmin = -3#torch.min(raw_input[i, var]) / 2
+                vmin = -1.5#torch.min(raw_input[i, var]) / 2
                 vmax = -vmin
                 if cfg.data_types[var] == 'pr':
                     cmap = "RdBu"

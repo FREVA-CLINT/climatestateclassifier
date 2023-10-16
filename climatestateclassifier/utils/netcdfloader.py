@@ -137,7 +137,7 @@ class NetCDFLoader(Dataset):
             input_data = input_data[:, :, :cfg.lons]
 
         input_labels = torch.from_numpy(np.nan_to_num(self.input_labels[index])).to(torch.float32)
-        return input_data, input_labels, self.sample_categories[index], self.sample_names[index]
+        return input_data.float(), input_labels, self.sample_categories[index], self.sample_names[index]
 
     def __len__(self):
         return self.length
