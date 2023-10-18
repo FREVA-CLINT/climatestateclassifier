@@ -67,6 +67,8 @@ def set_common_args():
     arg_parser.add_argument('--data-root-dirs', type=str_list, default='../data/',
                             help="Comma separated list of root directories containing the climate datasets")
     arg_parser.add_argument('--log-dir', type=str, default='logs/', help="Directory where the log files will be stored")
+    arg_parser.add_argument('--anomaly-file', type=str, default=None, help="Directory where the log files will be stored")
+    arg_parser.add_argument('--anomaly-type', type=str, default='tas', help="Directory where the log files will be stored")
     arg_parser.add_argument('--data-types', type=str_list, default='tsurf',
                             help="Comma separated list of input variable types")
     arg_parser.add_argument('--device', type=str, default='cuda', help="Device used by PyTorch (cuda or cpu)")

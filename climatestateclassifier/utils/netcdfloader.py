@@ -84,6 +84,8 @@ class NetCDFLoader(Dataset):
         self.data_types = data_types
         self.input, self.input_labels, self.sample_categories, self.sample_names = [], [], [], []
 
+        self.anomaly = None
+
         self.xr_dss = None
 
         for i in range(len(data_types)):
@@ -111,6 +113,10 @@ class NetCDFLoader(Dataset):
                 self.input.append(input_data)
         self.length = len(self.input_labels)
 
+        if cfg.anomaly_file:
+            data, _, _ = load_netcdf([cfg.anomaly_file], [cfg.anomaly_type])
+            self.anomaly = data
+
         if cfg.lats:
             self.img_sizes = ((cfg.lats, self.img_sizes[0][0]),)
         if cfg.lons:
@@ -126,6 +132,8 @@ class NetCDFLoader(Dataset):
             data = torch.from_numpy(np.nan_to_num(self.input[i][index]))
             if cfg.normalization:
                 data = self.data_normalizer.normalize(data, i)
+            if self.anomaly:
+                data -= torch.from_numpy(np.nan_to_num(self.anomaly))
             if cfg.mean_input:
                 data = torch.unsqueeze(torch.mean(data, dim=1), dim=1)
             input_data += data
