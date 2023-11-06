@@ -550,19 +550,16 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
             pass
 
     global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/eva_holo_total.nc",
-                                "aod")[12*(years[0]-1800):12*(years[0]-1800 + len(years) - (years[-1]-1999))]
+                                "aod")[12*(years[0]-1800):12*(years[0]-1800 + len(years) - 1)]
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
     class_predictions["Global AOD"] = global_mean_aod
-
-    print(global_aod.shape)
 
     global_aod = global_aod[:, :, 9]
 
     # global_aod = np.flip(global_aod, axis=0)
     global_aod = np.flip(global_aod, axis=1)
     # global_aod = np.transpose(global_aod)
-    print(global_aod.shape)
 
     # Calculate the width of each bar
     bar_width = 1
@@ -571,7 +568,7 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     matplotlib.rcParams.update({'font.size': font_size})
 
     # Create a figure and axis
-    fig, ax = plt.subplots(nrows=2, figsize=(13, 4.5))
+    fig, ax = plt.subplots(nrows=2, figsize=(15, 4.5))
     fig.tight_layout()
 
     # ax[0].set_title("MPI-GE Member Classifications")
@@ -608,18 +605,18 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
 
     volcanoes = {
-        1809: ("Unknown", "magenta"),
-        1815: ("Tambora", "magenta"),
-        1822: ("Galunggung", "magenta"),
+        1809.4: ("Unknown", "magenta"),
+        1815.4: ("Tambora", "magenta"),
+        1822.8: ("Galunggung", "magenta"),
         1831: ("Babuyan Claro", "magenta"),
         1835: ("Cosigüina", "magenta"),
-        1853: ("Toya", "magenta"),
-        1856: ("Hokkaido-Komagatake", "magenta"),
-        1861: ("Makian", "magenta"),
+        1853.4: ("Toya", "magenta"),
+        1856.8: ("Hokkaido-Komagatake", "magenta"),
+        1861.9: ("Makian", "magenta"),
         1873: ("Grímsvötn", "magenta"),
-        1875: ("Askja", "magenta"),
-        1883: ("Krakatau", "magenta"),
-        1886: ("Okataina", "magenta"),
+        1875.4: ("Askja", "magenta"),
+        1883.6: ("Krakatau", "magenta"),
+        1886.5: ("Okataina", "magenta"),
         # 1902: ("Santa Maria", "blue"),
         # 1912: ("Katmai", "yellow"),
         # 1963: ("Agung", "green"),
