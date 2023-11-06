@@ -38,7 +38,7 @@ def read_results_from_csv(eval_dir, eval_name):
                 outputs.append(torch.tensor([int(row[1])]))
                 categories.append(row[2])
                 sample_names.append(row[3])
-            i = i+1
+            i = i + 1
     return torch.cat(labels), torch.cat(outputs), categories, sample_names
 
 
@@ -171,20 +171,47 @@ def plot_class_predictions(outputs, labels, eval_name):
     plt.clf()
 
 
-def plot_predictions_by_category(outputs, labels, categories, eval_name):
+def format_label(label):
+    if label == "Tropics":
+        return "TR"
+    elif label == "Northern Hemisphere":
+        return "NHE"
+    elif label == "Southern Hemisphere":
+        return "SHE"
+    else:
+        return "UF"
 
-    class_predictions = [[0 for j in range(len(cfg.labels) * len(cfg.val_categories))] for i in range(len(cfg.labels))]
+
+def plot_predictions_by_category(outputs, labels, categories, eval_name):
+    for i in range(len(outputs)):
+        if outputs[i] == 0:
+            outputs[i] = 1
+        elif outputs[i] == 1:
+            outputs[i] = 0
+        if labels[i] == 0:
+            labels[i] = 1
+        elif labels[i] == 1:
+            labels[i] = 0
+
+    class_predictions = [[0 for j in range(1 + (len(cfg.labels) - 1) * (len(cfg.val_categories) - 3))] for i in
+                         range(len(cfg.labels))]
+    print(class_predictions.__len__())
+    print(class_predictions[0].__len__())
     for i in range(len(cfg.val_categories)):
         for k in range(labels.shape[0]):
             if cfg.val_categories[i] == categories[k]:
-                class_predictions[labels[k]][outputs[k] + (i * len(cfg.labels))] += 1.0 / len(cfg.val_samples)
+                if categories[k].split("_")[1] == "0":
+                    class_predictions[outputs[k]][0] += 1.0 / (3*len(cfg.val_samples))
+                else:
+                    class_predictions[outputs[k]][labels[k] + ((i - 3) * (len(cfg.labels) - 1)) + 1] += 1.0 / len(
+                        cfg.val_samples)
 
     for i in range(len(class_predictions)):
         for j in range(len(class_predictions[i])):
             class_predictions[i][j] = "{} %".format(
                 int(math.ceil(100 * (100 * class_predictions[i][j])) / 100) if math.ceil(
-                    100 * (100 * class_predictions[i][j])) / 100 % 1 == 0 else math.ceil(
-                    100 * (100 * class_predictions[i][j])) / 100)
+                    100 * (100 * class_predictions[i][j])) / 100 % 1 < 0.5 else int(math.ceil(
+                    100 * (100 * class_predictions[i][j])) / 100) + 1)
 
     fig, ax = plt.subplots()
     fig.patch.set_visible(False)
@@ -193,43 +220,62 @@ def plot_predictions_by_category(outputs, labels, categories, eval_name):
 
     category_labels = []
     class_labels = []
+    label_names = ['Northern Hemisphere', 'Tropics', 'Southern Hemisphere', 'No Eruption']
     for i in range(len(cfg.val_categories)):
         for j in range(len(cfg.labels)):
             category_labels.append("{}".format(cfg.val_categories[i]))
-            class_labels.append("{}".format(cfg.label_names[j]))
-    d = {'Category': category_labels,
-         'Label': class_labels}
+            class_labels.append("{}".format(label_names[j]))
+    final_labels = ["0 Tg S - UF"] + ["{}Tg S - {}".format(label.split("_")[1], format_label(class_label)) for label, class_label in
+                                      zip(category_labels,
+                                          class_labels) if label.split("_")[1] != "0" and class_label != "No Eruption"]
+
+    print(final_labels)
+    d = {'Ensemble': final_labels}
 
     prediction_colors = []
 
     for i in range(len(cfg.labels)):
-        d['{}'.format(cfg.label_names[i])] = class_predictions[i]
+        d['{}'.format(format_label(label_names[i]))] = class_predictions[:][i]
 
-    for i in range(len(class_labels)):
-        row_colors = 2 * ["#002f4a"]
+    avg_scores = []
+
+    for i in range(len(final_labels)):
+        row_colors = ["#002f4a"]
         for j in range(len(cfg.labels)):
             if class_predictions[j][i] == "0 %":
                 row_colors.append('white')
                 class_predictions[j][i] = "-"
-            elif class_labels[i] == cfg.label_names[j]:
+            elif format_label(label_names[j]) in final_labels[i]:
                 row_colors.append('green')
+                if "UF" in final_labels[i]:
+                    avg_scores += 3*[int(class_predictions[j][i].split(" ")[0])]
+                else:
+                    avg_scores.append(int(class_predictions[j][i].split(" ")[0]))
+
             else:
                 row_colors.append('red')
         prediction_colors.append(row_colors)
 
     df = pd.DataFrame(data=d)
-    table = ax.table(colWidths=len(d.keys()) * [0.2], cellText=df.values, colLabels=df.columns, loc='center',
-                     colColours=2 * ['white'] + (len(d.keys()) - 2) * ["#002f4a"], cellColours=prediction_colors)
-    table.set_fontsize(30)
+    table = ax.table(colWidths=[0.2] + (len(d.keys()) - 1) * [0.1], cellText=df.values, colLabels=df.columns,
+                     loc='center',
+                     colColours=2 * ['Gray'] + (len(d.keys()) - 2) * ["Gray"])
+
+    table.set_fontsize(17)
+    table.scale(2.5, 2.0)
+    print(d.keys())
     for i in range(len(d.keys())):
         for j in range(len(prediction_colors) + 1):
-            if i == 0 or j == 0 or i == 1:
-                table[(j, i)].get_text().set_color('white')
-            elif i > 1 and prediction_colors[j - 1][i] == 'red':
-                table[(j, i)].get_text().set_color('white')
-            if j == 0 and (i == 0 or i == 1):
+            if i > 0 and prediction_colors[j - 1][i] == 'red' and j > 0:
+                table[(j, i)].get_text().set_color('red')
+            elif i > 0 and prediction_colors[j - 1][i] == 'green' and j > 0:
+                table[(j, i)].get_text().set_color('green')
+            if j == 0 and i == 0:
                 table[(j, i)].get_text().set_color('black')
 
+    total_avg = sum(avg_scores) / len(avg_scores)
+    total_avg = int(total_avg) if total_avg % 1 < 0.5 else int(total_avg) + 1
+    fig.suptitle("Total Average Score: $\\bf{}$%".format(total_avg), y=0.01, x=0.7)
     fig.tight_layout()
     plt.savefig("{}/overview/{}_categories.pdf".format(cfg.eval_dir, eval_name), bbox_inches='tight')
     plt.clf()
@@ -238,7 +284,8 @@ def plot_predictions_by_category(outputs, labels, categories, eval_name):
 def plot_predictions_by_category_graph(outputs, categories, eval_name):
     levels_forcing = [0.0, 0.01, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.125, 0.15, 0.175, 0.2, 0.3]
     norm_forcing = matplotlib.colors.BoundaryNorm(levels_forcing, 13)
-    colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704", "#FF3802", "#800026"]
+    colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606",
+                      "#FF6704", "#FF3802", "#800026"]
 
     cmap_forcing = matplotlib.colors.ListedColormap(
         colors_forcing)
@@ -253,12 +300,14 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
 
     for i in range(outputs.shape[0]):
         try:
-            class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
+            class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(
+                cfg.val_samples)
         except ValueError:
             pass
 
-    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
-    #global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
+    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")[
+                 12 * (years[0] - 1850):12 * (years[0] - 1850 + len(years) - (years[-1] - 1999))]
+    # global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
     class_predictions["Global AOD"] = global_mean_aod
@@ -266,7 +315,7 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     # Calculate the width of each bar
     bar_width = 1
 
-    font_size=12
+    font_size = 12
     matplotlib.rcParams.update({'font.size': font_size})
 
     # Create a figure and axis
@@ -279,26 +328,54 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
-    colors_prob = ["#FFFFFF", "#FFF0F0", "#FFE1E1", "#FFD2D2", "#FFC3C3", "#FFB4B4", "#FFA5A5", "#FF9696", "#FF8787", "#FF7878", "#FF6969", "#FF0000"]
 
     cmap_prob = matplotlib.cm.Greys
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
-            img = ax[0].bar(year, height, color=cmap_prob(value), width=bar_width, align='center', bottom=current_bottom)
+            img = ax[0].bar(year, height, color=cmap_prob(value), width=bar_width, align='center',
+                            bottom=current_bottom)
         current_bottom += height
-
-    levels_prob = [0.0, 0.08, 0.16, 0.25, 0.33, 0.41, 0.5, 0.58, 0.66, 0.75, 0.83, 0.91, 1.0]
-    #norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
-
-    #cmap_prob = matplotlib.colors.ListedColormap(
-    #    colors_prob)
-    #cmap_prob = cmap_prob(np.arange(cmap_prob.N))
-    #cmap_prob = ListedColormap(cmap_prob)
 
     sm = ScalarMappable(cmap=cmap_prob)
     sm.set_array([])
 
+    threshold = 0.005
+    probabilities_nh = {}
+    probabilities_tr = {}
+    probabilities_sh = {}
+    probabilities_ne = {}
+
+    for i in range(class_predictions["Global AOD"].shape[0]):
+        if class_predictions["Global AOD"][i] < threshold:
+            probabilities_nh[years[i]] = int(
+                math.ceil(100 * (100 * class_predictions["Northern Hemisphere"][i])) / 100) if math.ceil(
+                100 * (100 * class_predictions["Northern Hemisphere"][i])) / 100 % 1 < 0.5 else int(math.ceil(
+                100 * (100 * class_predictions["Northern Hemisphere"][i])) / 100) + 1
+            probabilities_tr[years[i]] = int(
+                math.ceil(100 * (100 * class_predictions["Tropics"][i])) / 100) if math.ceil(
+                100 * (100 * class_predictions["Tropics"][i])) / 100 % 1 < 0.5 else int(math.ceil(
+                100 * (100 * class_predictions["Tropics"][i])) / 100) + 1
+            probabilities_sh[years[i]] = int(
+                math.ceil(100 * (100 * class_predictions["Southern Hemisphere"][i])) / 100) if math.ceil(
+                100 * (100 * class_predictions["Southern Hemisphere"][i])) / 100 % 1 < 0.5 else int(math.ceil(
+                100 * (100 * class_predictions["Southern Hemisphere"][i])) / 100) + 1
+            probabilities_ne[years[i]] = 100 - probabilities_nh[years[i]] - probabilities_tr[years[i]] - \
+                                         probabilities_sh[years[i]]
+            print(years[i])
+
+    print(len(probabilities_nh.keys()))
+
+    probabilities_nh["avg"] = sum(value for _, value in probabilities_nh.items()) / len(probabilities_nh.items())
+    probabilities_tr["avg"] = sum(value for _, value in probabilities_tr.items()) / len(probabilities_tr.items())
+    probabilities_sh["avg"] = sum(value for _, value in probabilities_sh.items()) / len(probabilities_sh.items())
+    probabilities_ne["avg"] = sum(value for _, value in probabilities_ne.items()) / len(probabilities_ne.items())
+
+    print(probabilities_nh["avg"])
+    print(probabilities_tr["avg"])
+    print(probabilities_sh["avg"])
+    print(probabilities_ne["avg"])
+    print(100 - probabilities_nh["avg"] - probabilities_tr["avg"] - probabilities_sh["avg"])
     cbar = plt.colorbar(sm, ax=ax[0], location="right", ticks=[0, 0.25, 0.5, 0.75, 1])
 
     volcanoes = {
@@ -323,9 +400,10 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
         ax[0].text(years[0], current_bottom, name, ha='right', va='center')
         current_bottom += height
 
-    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
-    #ax[0].set_aspect(40)
-    #ax[1].set_aspect(0.06)
+    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89],
+                       interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
+    # ax[0].set_aspect(40)
+    # ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
     ann_pos = [-6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
 
@@ -353,17 +431,18 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
 
     cmip6aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/cmip6aod.nc", "aod")
     cmip6aod_mean = np.nanmean(cmip6aod, axis=(1, 2))
-    #cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
-    cmip6aod_mean = cmip6aod_mean[12*(years[0]-1850):12*(years[0]-1850 + len(years) - (years[-1]-1999))]
+    # cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
+    cmip6aod_mean = cmip6aod_mean[12 * (years[0] - 1850):12 * (years[0] - 1850 + len(years) - (years[-1] - 1999))]
 
     cmip5aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/tauttl.nc", "tauttl")
     cmip5aod_mean = np.nanmean(cmip5aod, axis=(1, 2))
     # cmip6aod_mean = np.convolve(cmip6aod_mean, np.ones(12) / 12, mode='same')
     cmip5aod_mean = cmip5aod_mean[12 * (years[0] - 1850):12 * (years[0] - 1850 + len(years) - (years[-1] - 1999))]
 
-    glossacaod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/GloSSAC_V2.0.nc", "Glossac_Aerosol_Optical_Depth")
+    glossacaod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/GloSSAC_V2.0.nc",
+                                "Glossac_Aerosol_Optical_Depth")
     glossacaod_mean = np.nanmean(glossacaod, axis=(1, 2))
-    #glossacaod_mean = np.convolve(glossacaod_mean, np.ones(12) / 12, mode='same')
+    # glossacaod_mean = np.convolve(glossacaod_mean, np.ones(12) / 12, mode='same')
     glossacaod_mean = glossacaod_mean[:12 * 21]
 
     eval_predictions = {}
@@ -390,7 +469,7 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
 
     total_numbers = [0 for i in range(len(cfg.val_categories))]
     for i in range(len(cfg.val_categories)):
-        for key,value in combined_predictions.items():
+        for key, value in combined_predictions.items():
             total_numbers[i] += value[i]
 
     fig = plt.figure(figsize=(10, 2))
@@ -399,23 +478,46 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
     ax1 = fig.add_axes([0, 0, 1, 1])
 
     ax2 = ax1.twinx()
-    ax1.set_ylabel('Predicted Eruptions in %', color=color)
-    ax1.bar(years, [((combined_predictions["Northern Hemisphere"][i] + combined_predictions["Southern Hemisphere"][i] +
-            combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0 for i in
-            range(len(combined_predictions["No Eruption"]))],
-            color=cfg.timeseries_colors[0], label="Predicted Eruptions")
-    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.set_ylabel('Predicted Eruptions in %', color="black")
+
+    ax1.bar([year + 0.5 for year in years],
+            [((combined_predictions["Northern Hemisphere"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0
+             for i in
+             range(len(combined_predictions["No Eruption"]))],
+            bottom=[((combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[
+                                                                                           i] != 0 else 0
+                    for i in range(len(combined_predictions["No Eruption"]))],
+            color=cfg.timeseries_colors[0], label="NHE")
+
+    ax1.bar([year + 0.5 for year in years],
+            [((combined_predictions["Tropics"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0
+             for i in range(len(combined_predictions["No Eruption"]))],
+            bottom=[((combined_predictions["Southern Hemisphere"][i]) / total_numbers[i]) * 100 if total_numbers[
+                                                                                                       i] != 0 else 0
+                    for i in range(len(combined_predictions["No Eruption"]))],
+            color=cfg.timeseries_colors[1], label="TR")
+
+    ax1.bar([year + 0.5 for year in years],
+            [((combined_predictions["Southern Hemisphere"][i]) / total_numbers[i]) * 100 if total_numbers[i] != 0 else 0
+             for i in range(len(combined_predictions["No Eruption"]))],
+            color=cfg.timeseries_colors[2], label="SHE")
+
+    ax1.bar([year + 0.5 for year in [years[0] - 1] + years[:-1]],
+            [0 for i in range(len(combined_predictions["No Eruption"]))])
+
+    ax1.tick_params(axis='y', labelcolor="black")
     color = 'black'
-    ax2.set_ylabel('Average Global AOD', color=color)  # we already handled the x-label with ax1
-    #ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip5aod_mean))], [aod for aod in cmip5aod_mean], "y--", label="CMIP5 AOD")
-    ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip6aod_mean))], [aod * 10 for aod in cmip6aod_mean], "r--", label="CMIP6 AOD")
-    ax2.plot([1979 + (1.0/12) * x for x in range(len(glossacaod_mean))], glossacaod_mean, "b--", label="GloSSAC AOD")
-    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.set_ylabel('Average Global AOD', color="black")  # we already handled the x-label with ax1
+    # ax2.plot([years[0] + (1.0/12) * x for x in range(len(cmip5aod_mean))], [aod for aod in cmip5aod_mean], "y--", label="CMIP5 AOD")
+    ax2.plot([years[0] + (1.0 / 12) * x for x in range(len(cmip6aod_mean))], [aod * 10 for aod in cmip6aod_mean], "k--",
+             label="CMIP6 AOD")
+    ax2.plot([1979 + (1.0 / 12) * x for x in range(len(glossacaod_mean))], glossacaod_mean, color='gray',
+             linestyle='--', label="GloSSAC AOD")
+    ax2.tick_params(axis='y', labelcolor="black")
     ax2.margins(x=0, y=0.01)
     ax1.margins(x=0)
-    plt.figlegend(loc='upper center', fancybox=True, framealpha=1, shadow=True, fontsize='small',  bbox_to_anchor=(0.5, 0.99), ncol=2)
-    ax1.set_title("Evaluation {}".format(cfg.timeseries_names[0]))
-
+    plt.figlegend(loc='upper center', fancybox=True, framealpha=1, shadow=True, fontsize='small',
+                  bbox_to_anchor=(0.6, .99), ncol=2)
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
     # Set the x-axis limits and labels
@@ -426,7 +528,8 @@ def plot_predictions_by_category_timeseries(outputs, categories, eval_name):
 def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     levels_forcing = [0.0, 0.01, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.125, 0.15, 0.175, 0.2, 0.3]
     norm_forcing = matplotlib.colors.BoundaryNorm(levels_forcing, 13)
-    colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606", "#FF6704", "#FF3802", "#800026"]
+    colors_forcing = ["#FFFFFF", "#FFFBAA", "#FFF88A", "#FFF56A", "#FFF24A", "#FFEF2A", "#FFEC0A", "#FFC408", "#FF9606",
+                      "#FF6704", "#FF3802", "#800026"]
 
     cmap_forcing = matplotlib.colors.ListedColormap(
         colors_forcing)
@@ -441,61 +544,63 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
 
     for i in range(outputs.shape[0]):
         try:
-            class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(cfg.val_samples)
+            class_predictions[cfg.label_names[outputs[i]]][cfg.val_categories.index(categories[i])] += 1.0 / len(
+                cfg.val_samples)
         except ValueError:
             pass
 
-    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/eva_holo_total.nc", "aod")#[12*(years[0]-1800):12*(years[0]-1800 + len(years) - (years[-1]-1999))]
+    global_aod = import_forcing("/home/joe/PycharmProjects/climatestateclassifier/paper/eva_holo_total.nc",
+                                "aod")[12*(years[0]-1800):12*(years[0]-1800 + len(years) - (years[-1]-1999))]
     global_mean_aod = np.nanmean(global_aod, axis=(1, 2))
     global_mean_aod = np.mean(global_mean_aod.reshape(-1, 12), axis=1)
     class_predictions["Global AOD"] = global_mean_aod
 
     print(global_aod.shape)
 
-
     global_aod = global_aod[:, :, 9]
 
-    #global_aod = np.flip(global_aod, axis=0)
+    # global_aod = np.flip(global_aod, axis=0)
     global_aod = np.flip(global_aod, axis=1)
-    #global_aod = np.transpose(global_aod)
+    # global_aod = np.transpose(global_aod)
     print(global_aod.shape)
-
 
     # Calculate the width of each bar
     bar_width = 1
 
-    font_size=16
+    font_size = 16
     matplotlib.rcParams.update({'font.size': font_size})
 
     # Create a figure and axis
     fig, ax = plt.subplots(nrows=2, figsize=(13, 4.5))
     fig.tight_layout()
 
-    #ax[0].set_title("MPI-GE Member Classifications")
-    #ax[1].set_title("Stratospheric Aerosol Optical Depth Field", loc="bottom")
+    # ax[0].set_title("MPI-GE Member Classifications")
+    # ax[1].set_title("Stratospheric Aerosol Optical Depth Field", loc="bottom")
 
     # Plot the first time series
     label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    y_axes = ["SH -", "TR -", "NH -"]
+    y_axes = ["SHE -", "TR -", "NHE -"]
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
-    colors_prob = ["#FFFFFF", "#FFF0F0", "#FFE1E1", "#FFD2D2", "#FFC3C3", "#FFB4B4", "#FFA5A5", "#FF9696", "#FF8787", "#FF7878", "#FF6969", "#FF0000"]
+    colors_prob = ["#FFFFFF", "#FFF0F0", "#FFE1E1", "#FFD2D2", "#FFC3C3", "#FFB4B4", "#FFA5A5", "#FF9696", "#FF8787",
+                   "#FF7878", "#FF6969", "#FF0000"]
 
     cmap_prob = matplotlib.cm.Greys
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
-            img = ax[0].bar(year, height, color=cmap_prob(value), width=bar_width, align='center', bottom=current_bottom)
+            img = ax[0].bar(year + 0.5, height, color=cmap_prob(value), width=bar_width, align='center',
+                            bottom=current_bottom)
         current_bottom += height
 
     levels_prob = [0.0, 0.08, 0.16, 0.25, 0.33, 0.41, 0.5, 0.58, 0.66, 0.75, 0.83, 0.91, 1.0]
-    #norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
+    # norm_prob = matplotlib.colors.BoundaryNorm(levels_prob, 13)
 
-    #cmap_prob = matplotlib.colors.ListedColormap(
+    # cmap_prob = matplotlib.colors.ListedColormap(
     #    colors_prob)
-    #cmap_prob = cmap_prob(np.arange(cmap_prob.N))
-    #cmap_prob = ListedColormap(cmap_prob)
+    # cmap_prob = cmap_prob(np.arange(cmap_prob.N))
+    # cmap_prob = ListedColormap(cmap_prob)
 
     sm = ScalarMappable(cmap=cmap_prob)
     sm.set_array([])
@@ -515,12 +620,12 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
         1875: ("Askja", "magenta"),
         1883: ("Krakatau", "magenta"),
         1886: ("Okataina", "magenta"),
-        #1902: ("Santa Maria", "blue"),
-        #1912: ("Katmai", "yellow"),
-        #1963: ("Agung", "green"),
-        #1974: ("Fuego", "red"),
-        #1982: ("El Chichon", "gray"),
-        #1991: ("Pinatubo", "white")
+        # 1902: ("Santa Maria", "blue"),
+        # 1912: ("Katmai", "yellow"),
+        # 1963: ("Agung", "green"),
+        # 1974: ("Fuego", "red"),
+        # 1982: ("El Chichon", "gray"),
+        # 1991: ("Pinatubo", "white")
     }
 
     # Set the x-axis limits and labels
@@ -535,19 +640,21 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
         ax[0].text(years[0], current_bottom, name, ha='right', va='center')
         current_bottom += height
 
-    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89], interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
-    #ax[0].set_aspect(40)
-    #ax[1].set_aspect(0.06)
+    img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89],
+                       interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
+    # ax[0].set_aspect(40)
+    # ax[1].set_aspect(0.06)
     ax[1].yaxis.set_visible(False)
-    #ann_pos = [-8.24, -7.25, 19.52, 12.97, -6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
+    # ann_pos = [-8.24, -7.25, 19.52, 12.97, -6.1, 14.75, 58.28, -8.34, 14.47, 17.36, 15.13]
     ann_pos = [20.0, -8.24, -7.25, 19.52, 12.97, 42.50, 42.06, 0.32, 64.40, 65.03, -6.1, -38.12]
 
     i = 1
     for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
-        ax[1].text(key - 2, pos - 28 - len(str(i)), i, fontsize=font_size)
         if i == 1:
-            ax[1].text(key-1.18, pos-102, '------------------', color="red", rotation=90)
+            ax[1].text(key - 0.8, -105 + pos - 28 - len(str(i)), i, fontsize=font_size)
+            ax[1].text(key - 1.18, pos - 102, '------------------', color="red", rotation=90)
         else:
+            ax[1].text(key - 2, pos - 28 - len(str(i)), i, fontsize=font_size)
             ax[1].plot(key, pos, 'o', ms=7, mec='k', color="white")
         i += 1
 
@@ -638,7 +745,7 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
             ax[time, 0].axis('off')
             ax[time, 0].axis('tight')
             for var in range(inputs.shape[2]):
-                vmin = -1.5#torch.min(raw_input[i, var]) / 2
+                vmin = -1.5  # torch.min(raw_input[i, var]) / 2
                 vmax = -vmin
                 if cfg.data_types[var] == 'pr':
                     cmap = "RdBu"
@@ -667,7 +774,7 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
         fig.tight_layout()
         fig.savefig(
             '{}/explanations/{}{}{}{}.jpg'.format(cfg.eval_dir, eval_name, category_names[i], sample_names[i],
-                                                     gt_class.replace(' ', '')),
+                                                  gt_class.replace(' ', '')),
             dpi=800)
         plt.close(fig)
         plt.clf()
