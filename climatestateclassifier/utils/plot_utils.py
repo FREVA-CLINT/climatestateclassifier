@@ -324,7 +324,7 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
 
     # Plot the first time series
     label_names = ["Southern Hemisphere", "Tropics", "Northern Hemisphere"]
-    y_axes = ["SH -", "TR -", "NH -"]
+    y_axes = ["SHE -", "TR -", "NHE -"]
     class_colors = ["gray", "red", "purple", "blue"]
 
     height = 0.1
@@ -333,7 +333,7 @@ def plot_predictions_by_category_graph(outputs, categories, eval_name):
     current_bottom = 0.0
     for name, color in zip(label_names, class_colors):
         for year, value in zip(years, class_predictions[name]):
-            img = ax[0].bar(year, height, color=cmap_prob(value), width=bar_width, align='center',
+            img = ax[0].bar(year + 0.5, height, color=cmap_prob(value), width=bar_width, align='center',
                             bottom=current_bottom)
         current_bottom += height
 
@@ -568,7 +568,7 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     matplotlib.rcParams.update({'font.size': font_size})
 
     # Create a figure and axis
-    fig, ax = plt.subplots(nrows=2, figsize=(15, 4.5))
+    fig, ax = plt.subplots(nrows=2, figsize=(13, 4.5))
     fig.tight_layout()
 
     # ax[0].set_title("MPI-GE Member Classifications")
@@ -648,8 +648,8 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     i = 1
     for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
         if i == 1:
-            ax[1].text(key - 0.8, -105 + pos - 28 - len(str(i)), i, fontsize=font_size)
-            ax[1].text(key - 1.18, pos - 102, '------------------', color="red", rotation=90)
+            ax[1].text(key - 1, -105 + pos - 28 - len(str(i)), i, fontsize=font_size)
+            ax[1].text(key - 1.4, pos - 102, '------------------', color="red", rotation=90)
         else:
             ax[1].text(key - 2, pos - 28 - len(str(i)), i, fontsize=font_size)
             ax[1].plot(key, pos, 'o', ms=7, mec='k', color="white")
