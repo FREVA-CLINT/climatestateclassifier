@@ -637,6 +637,9 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
         ax[0].text(years[0], current_bottom, name, ha='right', va='center')
         current_bottom += height
 
+    ax[0].text(1809 - 3.2, -0.054, 1809, fontsize=font_size)
+    ax[0].text(1809 - 1.4, 0.0, '-------------------', color="black", rotation=90)
+
     img = ax[1].imshow(np.flip(np.transpose(global_aod.squeeze()), axis=0), extent=[years[0], years[-1], -89, 89],
                        interpolation='nearest', aspect='auto', cmap=cmap_forcing, norm=norm_forcing)
     # ax[0].set_aspect(40)
@@ -648,7 +651,7 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     i = 1
     for key, (name, color), pos in zip(volcanoes.keys(), volcanoes.values(), ann_pos):
         if i == 1:
-            ax[1].text(key - 1, -105 + pos - 28 - len(str(i)), i, fontsize=font_size)
+            ax[1].text(key - 2, pos - 28 - len(str(i)), i, fontsize=font_size)
             ax[1].text(key - 1.4, pos - 102, '------------------', color="red", rotation=90)
         else:
             ax[1].text(key - 2, pos - 28 - len(str(i)), i, fontsize=font_size)
