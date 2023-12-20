@@ -104,6 +104,9 @@ def set_common_args():
     arg_parser.add_argument('--global-padding', action='store_true', help="Use a custom padding for global dataset")
     arg_parser.add_argument('--mean-input', action='store_true', help="Use a custom padding for global dataset")
     arg_parser.add_argument('--lazy-load', action='store_true', help="Load data sets during training")
+    arg_parser.add_argument('--activation_out', type=str, default='',
+                            help="Output activation")
+
     return arg_parser
 
 
