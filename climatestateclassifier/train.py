@@ -44,8 +44,8 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
     writer = SummaryWriter(log_dir='{}/{}'.format(cfg.log_dir, rotation_string))
 
     # create data sets
-    dataset_train = NetCDFLoader(cfg.data_file_train, cfg.data_types, train_samples, cfg.train_categories, cfg.labels)
-    dataset_val = NetCDFLoader(cfg.data_file_val, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
+    dataset_train = NetCDFLoader(cfg.data_files_train, cfg.data_types, train_samples, cfg.train_categories, cfg.labels)
+    dataset_val = NetCDFLoader(cfg.data_files_val, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
 
     iterator_train = iter(DataLoader(dataset_train, batch_size=cfg.batch_size,
                                      sampler=InfiniteSampler(len(dataset_train)),

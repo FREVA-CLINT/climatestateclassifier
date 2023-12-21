@@ -64,7 +64,9 @@ def global_args(parser, arg_file=None, prog_func=None):
 
 def set_common_args():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--data-file', type=str, default='',
+    arg_parser.add_argument('--data_files_train', type=str_list, default='',
+                            help="File containing the training data. Three columns: col0 - filepaths, col1 - train/val, col2 - y")
+    arg_parser.add_argument('--data_files_val', type=str_list, default='',
                             help="File containing the training data. Three columns: col0 - filepaths, col1 - train/val, col2 - y")
     arg_parser.add_argument('--log-dir', type=str, default='logs/', help="Directory where the log files will be stored")
     arg_parser.add_argument('--data-types', type=str_list, default='tsurf',
