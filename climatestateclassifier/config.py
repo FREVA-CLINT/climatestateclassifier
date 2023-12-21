@@ -64,11 +64,13 @@ def global_args(parser, arg_file=None, prog_func=None):
 
 def set_common_args():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--data-root-dir', type=str, default='../data/',
-                            help="Root directory containing the climate datasets")
+    arg_parser.add_argument('--data-file', type=str, default='',
+                            help="File containing the training data. Three columns: col0 - filepaths, col1 - train/val, col2 - y")
     arg_parser.add_argument('--log-dir', type=str, default='logs/', help="Directory where the log files will be stored")
     arg_parser.add_argument('--data-types', type=str_list, default='tsurf',
                             help="Comma separated list of input variable types")
+    arg_parser.add_argument('--val-categories', type=str_list, default=None,
+                            help="Comma separated list of category values that are used for validation")
     arg_parser.add_argument('--device', type=str, default='cuda', help="Device used by PyTorch (cuda or cpu)")
     arg_parser.add_argument('--normalization', type=str, default=None,
                             help="None: No normalization, "
@@ -77,8 +79,6 @@ def set_common_args():
                                  "custom: normalize with custom define mean and std values")
     arg_parser.add_argument('--val-samples', type=interv_list, default='101,200',
                             help="Comma separated list of samples that are used for validation")
-    arg_parser.add_argument('--val-categories', type=str_list, default=None,
-                            help="Comma separated list of category values that are used for validation")
     arg_parser.add_argument('--attention-dim', type=int, default=None,
                             help="Dimension of attention layer")
     arg_parser.add_argument('--decoder-dims', type=int_list, default="512,64",
