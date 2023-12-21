@@ -3,6 +3,7 @@ import os
 import torch
 import torch.multiprocessing
 import torch.nn as nn
+import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -44,25 +45,35 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
     writer = SummaryWriter(log_dir='{}/{}'.format(cfg.log_dir, rotation_string))
 
     # create data sets
-    dataset_train = NetCDFLoader(cfg.data_files_train, cfg.data_types, train_samples, cfg.train_categories, cfg.labels)
-    dataset_val = NetCDFLoader(cfg.data_files_val, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
+    dataset_train = NetCDFLoader(cfg.data_files_train, cfg.data_types, cfg.time_steps)
+    dataset_val = NetCDFLoader(cfg.data_files_val, cfg.data_types, cfg.time_steps)
 
     iterator_train = iter(DataLoader(dataset_train, batch_size=cfg.batch_size,
                                      sampler=InfiniteSampler(len(dataset_train)),
                                      num_workers=cfg.n_threads))
+    
+    iterator_val = DataLoader(dataset_val, batch_size=cfg.batch_size,
+                                     num_workers=cfg.n_threads)
 
-    in_channels = len(cfg.data_types) if cfg.mean_input else len(cfg.data_types) * cfg.time_steps
+    in_channels = len(cfg.data_types) * cfg.time_steps[0]
+
+    if cfg.task=='prediction':
+        n_output = 1
+        criterion = nn.MSELoss()
+    else:
+        n_output = cfg.labels
+        criterion = nn.CrossEntropyLoss()
 
     model = ClassificationNet(img_sizes=dataset_train.img_sizes[0],
                               in_channels=in_channels,
                               enc_dims=[dim for dim in cfg.encoder_dims],
                               dec_dims=[dim for dim in cfg.decoder_dims],
-                              n_classes=len(cfg.labels)).to(cfg.device)
+                              n_classes=n_output).to(cfg.device)
 
     # define optimizer and loss functions
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=cfg.lr)
 
-    criterion = nn.CrossEntropyLoss()
+    
 
     # define start point
     start_iter = 0
@@ -81,27 +92,38 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
         # train model
         model.train()
-        input, labels, _, _ = next(iterator_train)
+        input, target = next(iterator_train)
         output = model(input.to(cfg.device))
-        train_loss = criterion(output, labels.to(cfg.device))
+        train_loss = criterion(output.squeeze(), target.to(cfg.device).float().squeeze())
 
         optimizer.zero_grad()
         train_loss.backward()
         optimizer.step()
+        train_loss = train_loss.item()
 
         if cfg.log_interval and (i + 1) % cfg.log_interval == 0:
             model.eval()
-            data = []
-            for j in range(2):
-                data.append(torch.stack([dataset_val[k][j] for k in range(dataset_val.__len__())]))
-            val_input, val_input_classes = data[0].to(cfg.device), data[1].to(cfg.device)
+            val_losses = []
+            val_predictions = []
+            for batch in iterator_val:
+                input, target = batch
+                input, target = input.to(cfg.device), target.to(cfg.device)
+            
+                with torch.no_grad():
+                    output = model(input)
 
-            with torch.no_grad():
-                output = model(val_input)
+                val_loss = criterion(output.squeeze(), target.squeeze())
+                val_losses.append(val_loss.item())
+                val_predictions += list(output.numpy())
+            val_loss = torch.tensor(val_losses).mean()
+            
+            writer.add_scalar("train-loss", train_loss, i+1)
+            writer.add_scalar("val-loss", val_loss, i+1)
 
-            val_loss = criterion(output, val_input_classes)
-            writer.add_scalar("train-loss", i+1, train_loss.item())
-            writer.add_scalar("val-loss", i+1, val_loss.item())
+            if cfg.print_val_output:
+                val_output_file = os.path.join(cfg.log_dir,f'val_predictions_iter_{i}.csv')
+                np_out = np.array(val_predictions)
+                np.savetxt(val_output_file, np_out)
 
         if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
             save_ckpt('{:s}/{:d}{:s}.pth'.format(cfg.snapshot_dir, i + 1, rotation_string),

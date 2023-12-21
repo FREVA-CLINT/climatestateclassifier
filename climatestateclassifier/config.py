@@ -93,7 +93,7 @@ def set_common_args():
                             help="Rotates the training cycle through all samples. In each cycle,"
                                  " a single sample is left out for validation, all others are used for training")
     arg_parser.add_argument('--max-rotations', type=int, default=5, help="Stop rotations after specified number")
-    arg_parser.add_argument('--time-steps', type=int, default=1, help="Number of time steps in each sample")
+    arg_parser.add_argument('--time-steps', type=int_list, default=1, help="Number of time steps in each sample")
     arg_parser.add_argument('--vlim', type=int_list, default="-1,1",
                             help="Comma separated list of vmin, vmax values for the color scale of the snapshot graphs")
     arg_parser.add_argument('--labels', type=str_list, default=',nh,sh,ne',
@@ -106,8 +106,10 @@ def set_common_args():
     arg_parser.add_argument('--global-padding', action='store_true', help="Use a custom padding for global dataset")
     arg_parser.add_argument('--mean-input', action='store_true', help="Use a custom padding for global dataset")
     arg_parser.add_argument('--lazy-load', action='store_true', help="Load data sets during training")
-    arg_parser.add_argument('--activation_out', type=str, default='',
+    arg_parser.add_argument('--activation-out', type=str, default='',
                             help="Output activation")
+    arg_parser.add_argument('--task', type=str, default='prediction',
+                            help="Task")
 
     return arg_parser
 
@@ -142,6 +144,8 @@ def set_train_args(arg_file=None):
                             help="Comma separated list of category values that are used for training")
     arg_parser.add_argument('--train-samples', type=interv_list, default='101',
                             help="Comma separated list of samples that are used for training")
+    arg_parser.add_argument('--print-val-output', action='store_true', help="If output on valset should be saved")
+
     global_args(arg_parser, arg_file)
 
 

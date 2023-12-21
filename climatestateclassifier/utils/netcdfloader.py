@@ -34,12 +34,20 @@ class InfiniteSampler(Sampler):
                 order = np.random.permutation(self.num_samples)
                 i = 0
 
+def load_netdf(file_path, variable, ts=None):
+    if ts is None:
+        return xr.open_dataset(file_path)[variable][:ts].values
+    else:
+        return xr.open_dataset(file_path)[variable].values
 
 class NetCDFLoader(Dataset):
-    def __init__(self, csv_files, transform=None):
+    def __init__(self, csv_files, data_types, timesteps):
         self.data_frames = [pd.read_csv(csv_file) for csv_file in csv_files]
-        self.transform = transform
-
+        self.data_types = data_types
+        self.timesteps = timesteps
+        
+        ds = torch.tensor(load_netdf(self.data_frames[0].iloc[0,0], data_types[0]))
+        self.img_sizes = [ds.shape[-2:]]
         # add normalization?
         # how about era data?
 
@@ -49,17 +57,20 @@ class NetCDFLoader(Dataset):
     def __len__(self):
         return self.data_frames[0].shape[0]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, index):
         data_all = []
-        for data_frame in self.data_frames:
-            img_path = data_frame.iloc[idx, 0]
-            variable = data_frame.iloc[idx, 1]
+        img_path = self.data_frames[0].iloc[index, 0]
+        
+        for idx, data_frame in enumerate(self.data_frames):
+            variable = self.data_types[idx]
 
             # Open the NetCDF file using xarray
-            data = torch.tensor(xr.open_dataset(img_path)[variable].values)
+            data = torch.tensor(load_netdf(img_path, variable, self.timesteps[idx]))
+            if data.dim() < 3:
+                data = data.unsqueeze(dim=0)
             data_all.append(data)
         
-        data_all = torch.stack(data_all)
-        target = data_frame.iloc[idx, 2]
+        data_all = torch.concat(data_all, dim=0)
+        target = data_frame.iloc[idx, 1]
 
         return data_all, target

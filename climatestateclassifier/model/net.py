@@ -7,6 +7,7 @@ from .. import config as cfg
 
 class sigmoid_shifted(nn.Module):
     def __init__(self, min=-1, max=1):
+        super(sigmoid_shifted, self).__init__()
         self.offset = min
         self.range = max - min
         self.activation_out = nn.Sigmoid()
