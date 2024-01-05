@@ -144,7 +144,7 @@ def create_correlation_plot(prediction, gt):
     R = torch.corrcoef(torch.vstack((prediction, gt)))[0, 1]
 
     axs[0, 0].scatter(gt, prediction, color='red', alpha=0.5)
-    axs[0, 0].plot(gt, prediction, color='black')
+    axs[0, 0].plot(gt, gt, color='black')
     axs[0, 0].grid()
     axs[0, 0].set_xlabel('target values')
     axs[0, 0].set_ylabel('predicted values')
