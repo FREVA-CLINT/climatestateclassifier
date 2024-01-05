@@ -72,6 +72,6 @@ class NetCDFLoader(Dataset):
             data_all.append(data)
         
         data_all = torch.concat(data_all, dim=0)
-        target = data_frame[self.target_name].iloc[idx]
+        target = data_frame[self.target_name].iloc[index]
 
         return data_all, target
