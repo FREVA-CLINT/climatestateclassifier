@@ -12,6 +12,7 @@ from . import config as cfg
 from .model.net import ClassificationNet
 from .utils.io import load_ckpt, save_ckpt
 from .utils.netcdfloader import NetCDFLoader, InfiniteSampler
+import matplotlib.pyplot as plt
 
 
 def train(arg_file=None):
@@ -105,6 +106,7 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
             model.eval()
             val_losses = []
             val_predictions = []
+            val_gts = []
             for batch in iterator_val:
                 input, target = batch
                 input, target = input.to(cfg.device), target.to(cfg.device)
@@ -115,10 +117,13 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
                 val_loss = criterion(output.squeeze(), target.squeeze())
                 val_losses.append(val_loss.item())
                 val_predictions += list(output.cpu().numpy())
+                val_gts += list(target.cpu().numpy())
             val_loss = torch.tensor(val_losses).mean()
             
             writer.add_scalar("train-loss", train_loss, i+1)
             writer.add_scalar("val-loss", val_loss, i+1)
+            fig = create_correlation_plot(torch.tensor(val_predictions).squeeze(), torch.tensor(val_gts))
+            writer.add_figure('correlation', fig, global_step=i)
 
             if cfg.print_val_output:
                 val_output_file = os.path.join(cfg.log_dir,f'val_predictions_iter_{i}.csv')
@@ -131,6 +136,21 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
     writer.close()
 
+def create_correlation_plot(prediction, gt):
+  
+
+    fig, axs = plt.subplots(1, 1, squeeze=False)
+  
+    R = torch.corrcoef(torch.vstack((prediction, gt)))[0, 1]
+
+    axs[0, 0].scatter(gt, prediction, color='red', alpha=0.5)
+    axs[0, 0].plot(gt, prediction, color='black')
+    axs[0, 0].grid()
+    axs[0, 0].set_xlabel('target values')
+    axs[0, 0].set_ylabel('predicted values')
+    axs[0, 0].set_title(f'R = {R:.4}')
+
+    return fig
 
 if __name__ == "__main__":
     train()
