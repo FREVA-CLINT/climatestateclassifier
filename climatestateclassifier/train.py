@@ -45,8 +45,8 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
     writer = SummaryWriter(log_dir='{}/{}'.format(cfg.log_dir, rotation_string))
 
     # create data sets
-    dataset_train = NetCDFLoader(cfg.data_files_train, cfg.data_types, cfg.time_steps)
-    dataset_val = NetCDFLoader(cfg.data_files_val, cfg.data_types, cfg.time_steps)
+    dataset_train = NetCDFLoader(cfg.data_files_train, cfg.data_types, cfg.time_steps, cfg.target_name)
+    dataset_val = NetCDFLoader(cfg.data_files_val, cfg.data_types, cfg.time_steps, cfg.target_name)
 
     iterator_train = iter(DataLoader(dataset_train, batch_size=cfg.batch_size,
                                      sampler=InfiniteSampler(len(dataset_train)),
@@ -114,7 +114,7 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
                 val_loss = criterion(output.squeeze(), target.squeeze())
                 val_losses.append(val_loss.item())
-                val_predictions += list(output.numpy())
+                val_predictions += list(output.cpu().numpy())
             val_loss = torch.tensor(val_losses).mean()
             
             writer.add_scalar("train-loss", train_loss, i+1)

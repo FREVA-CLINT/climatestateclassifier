@@ -41,10 +41,11 @@ def load_netdf(file_path, variable, ts=None):
         return xr.open_dataset(file_path)[variable].values
 
 class NetCDFLoader(Dataset):
-    def __init__(self, csv_files, data_types, timesteps):
+    def __init__(self, csv_files, data_types, timesteps, target_name):
         self.data_frames = [pd.read_csv(csv_file) for csv_file in csv_files]
         self.data_types = data_types
         self.timesteps = timesteps
+        self.target_name = target_name
         
         ds = torch.tensor(load_netdf(self.data_frames[0].iloc[0,0], data_types[0]))
         self.img_sizes = [ds.shape[-2:]]
@@ -71,6 +72,6 @@ class NetCDFLoader(Dataset):
             data_all.append(data)
         
         data_all = torch.concat(data_all, dim=0)
-        target = data_frame.iloc[idx, 1]
+        target = data_frame[self.target_name].iloc[idx]
 
         return data_all, target

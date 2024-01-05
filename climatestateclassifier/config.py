@@ -68,6 +68,8 @@ def set_common_args():
                             help="File containing the training data. Three columns: col0 - filepaths, col1 - train/val, col2 - y")
     arg_parser.add_argument('--data_files_val', type=str_list, default='',
                             help="File containing the training data. Three columns: col0 - filepaths, col1 - train/val, col2 - y")
+    arg_parser.add_argument('--target_name', type=str,
+                            help="Name of the target column")
     arg_parser.add_argument('--log-dir', type=str, default='logs/', help="Directory where the log files will be stored")
     arg_parser.add_argument('--data-types', type=str_list, default='tsurf',
                             help="Comma separated list of input variable types")
