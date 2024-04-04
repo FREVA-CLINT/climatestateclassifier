@@ -2,14 +2,12 @@ import os
 
 import torch
 
-from .lrp import converter
 from . import config as cfg
 from .model.net import ClassificationNet
 from .utils.explain_net import generate_explanations
 from .utils.io import load_ckpt
 from .utils.netcdfloader import NetCDFLoader
 from .utils.plot_utils import plot_single_predictions, plot_explanations, \
-    plot_class_predictions, plot_predictions_by_category, plot_prediction_overview, plot_predictions_by_category_graph, \
     read_results_from_csv, save_results_as_csv, plot_predictions_by_category_timeseries, \
     plot_predictions_by_category_graph_1800
 
@@ -17,6 +15,7 @@ from .utils.plot_utils import plot_single_predictions, plot_explanations, \
 def create_prediction(model_name, val_samples):
     # load data
     dataset = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
+    print(dataset.__len__())
     input = torch.stack([dataset[j][0] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     label = torch.stack([dataset[j][1] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     category = [dataset[j][2] for j in range(dataset.__len__())]
@@ -32,8 +31,6 @@ def create_prediction(model_name, val_samples):
 
     load_ckpt(model_name, [('model', model)], cfg.device)
     model.eval()
-    if cfg.plot_explanations:
-        model = converter.convert_net(model).to(cfg.device)
     with torch.no_grad():
         output = model(input.to(cfg.device)).to(torch.device('cpu'))
 
@@ -47,7 +44,7 @@ def create_prediction(model_name, val_samples):
             for key in ("time", "lon", "lat"):
                 if key in dim:
                     dims[key] = coords[dim].values
-        explanations = generate_explanations(model, input.to(cfg.device)).to(torch.device('cpu'))
+        explanations = generate_explanations(model, input.to(cfg.device), output).to(torch.device('cpu'))
 
     # renormalize input data
     input = torch.stack(torch.split(input, len(cfg.data_types), dim=1), dim=1)
@@ -118,15 +115,14 @@ def evaluate(arg_file=None, prog_func=None):
                 labels = labels.argmax(1)
                 save_results_as_csv(cfg.eval_dir, cfg.eval_names[i_model], labels, outputs, categories, sample_names)
                 if cfg.plot_explanations:
-                    #plot_explanations(inputs, dims, labels, outputs, sample_names, categories, explanations,
+                    #plot_explanations(inputs, dims, labels, sample_names, categories, explanations,
                     #                  eval_name="{}".format(cfg.eval_names[i_model]))
                     plot_explanations(torch.mean(inputs, dim=0).unsqueeze(0),
                                       dims,
                                       labels[0].unsqueeze(0),
-                                      outputs[0].unsqueeze(0),
                                       [sample_names[0]],
                                       [categories[0]],
-                                      torch.mean(explanations, dim=0).unsqueeze(0),
+                                      torch.mean(explanations, dim=1).unsqueeze(1),
                                       eval_name="average_{}".format(cfg.eval_names[i_model]))
 
             if cfg.plot_prediction_overview:

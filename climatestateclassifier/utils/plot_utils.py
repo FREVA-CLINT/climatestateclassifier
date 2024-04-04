@@ -680,6 +680,8 @@ def plot_single_explanation(explanations, ax, dims, pad=0.13):
     new_cmap = cmap(np.arange(cmap.N))
     new_cmap = ListedColormap(new_cmap)
 
+    explanations /= torch.nanquantile(explanations, 0.95)
+
     vmin = 0
     vmax = 1
     for time in range(explanations.shape[0]):
@@ -691,7 +693,7 @@ def plot_single_explanation(explanations, ax, dims, pad=0.13):
         ax[time].add_feature(cartopy.feature.BORDERS, edgecolor="black", linestyle="--", linewidth=0.3)
 
         ax[time].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
-        plot = ax[time].pcolormesh(dims["lon"], dims["lat"], 5000 * explanations[time, :, :].detach().numpy(),
+        plot = ax[time].pcolormesh(dims["lon"], dims["lat"], explanations[time, :, :].detach().numpy(),
                                    vmin=vmin, vmax=vmax,
                                    transform=ccrs.PlateCarree(), shading='auto', cmap=new_cmap, linewidth=0,
                                    rasterized=True)
@@ -703,37 +705,15 @@ def plot_single_explanation(explanations, ax, dims, pad=0.13):
         cb.ax.set_title("{}".format("Relevance (unitless)"), fontsize=5)
 
 
-def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, all_explanations, eval_name):
+def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explanations, eval_name):
     for i in range(inputs.shape[0]):
         n_rows = cfg.time_steps if not cfg.mean_input else 1
-        n_cols = len(cfg.data_types) * (len(cfg.explanation_names) + 1) + 1
+        n_cols = len(cfg.data_types) * (len(cfg.explanation_names) + 1)
         fig, ax = plt.subplots(n_rows, n_cols, figsize=(1.5 * n_cols + 1.5, n_rows * 1.25),
                                subplot_kw={"projection": ccrs.Robinson()}, squeeze=False)
 
         gt_index = torch.argmax(gt[i])
         gt_class = cfg.label_names[gt_index]
-        pred_index = torch.argmax(outputs[i])
-        pred_class = cfg.label_names[pred_index]
-
-        # Create data frame for table
-        d = {'$\\bf{Label}$': ["Ground Truth", "Prediction"]}
-        pred_colors = ['white']
-        if gt_class == pred_class:
-            pred_colors.append("lightgreen")
-        else:
-            pred_colors.append("red")
-        key = 'Sample {}, Cat {}'.format(sample_names[i], category_names[i])
-        key = '$\\bf{' + key + '}$'
-        d[key] = [gt_class, pred_class]
-        colors = [2 * ['white'], pred_colors]
-        df = pd.DataFrame(data=d)
-        table = ax[n_rows // 2, 0].table(colWidths=[0.3, 0.5], cellText=df.values, colLabels=df.columns, loc='center',
-                                         colColours=len(d.keys()) * ["#002f4a"], cellColours=colors)
-
-        table.set_fontsize(35)
-        table.scale(1.5, 1.5)
-        for k in range(len(d.keys())):
-            table[(0, k)].get_text().set_color('white')
 
         if cfg.lons:
             dims["lon"] = dims["lon"][:cfg.lons]
@@ -751,7 +731,7 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
                     cmap = "RdBu"
                 else:
                     cmap = "RdBu_r"
-                col = var * (len(cfg.explanation_names) + 1) + 1
+                col = var * (len(cfg.explanation_names) + 1)
                 gl = ax[time, col].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
                 gl.top_labels = False
                 gl.right_labels = False
@@ -769,7 +749,7 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
         for exp in range(all_explanations.shape[0]):
             for var in range(all_explanations.shape[2]):
                 plot_single_explanation(all_explanations[exp, i, var],
-                                        ax[:, var * (all_explanations.shape[0] + 1) + exp + 1 + 1], dims, pad=0.2)
+                                        ax[:, var * (all_explanations.shape[0] + 1) + exp + 1], dims, pad=0.2)
 
         fig.tight_layout()
         fig.savefig(
