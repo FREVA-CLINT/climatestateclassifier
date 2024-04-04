@@ -671,7 +671,7 @@ def plot_predictions_by_category_graph_1800(outputs, categories, eval_name):
     plt.clf()
 
 
-def plot_single_explanation(explanations, ax, dims, pad=0.13):
+def plot_single_explanation(explanations, ax, dims, exp):
     # color map
     if not cfg.cmap_colors:
         cmap = matplotlib.cm.RdBu
@@ -685,31 +685,29 @@ def plot_single_explanation(explanations, ax, dims, pad=0.13):
     vmin = 0
     vmax = 1
     for time in range(explanations.shape[0]):
-        # axes[i].axis('off')
         gl = ax[time].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
         gl.top_labels = False
         gl.right_labels = False
         ax[time].add_feature(cartopy.feature.COASTLINE, edgecolor="black", linewidth=0.3)
         ax[time].add_feature(cartopy.feature.BORDERS, edgecolor="black", linestyle="--", linewidth=0.3)
-
+        ax[time].title.set_text(cfg.explanation_names[exp])
+        ax[time].title.set_size(5)
         ax[time].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
         plot = ax[time].pcolormesh(dims["lon"], dims["lat"], explanations[time, :, :].detach().numpy(),
                                    vmin=vmin, vmax=vmax,
                                    transform=ccrs.PlateCarree(), shading='auto', cmap=new_cmap, linewidth=0,
                                    rasterized=True)
 
-        cb = plt.colorbar(plot, location="bottom", ax=ax[time], fraction=0.09, pad=pad)
+        cb = plt.colorbar(plot, location="bottom", ax=ax[time], fraction=0.09, pad=0.1)
         cb.ax.tick_params(labelsize=5)
         cb.ax.ticklabel_format(useOffset=True, style='plain')
-
-        cb.ax.set_title("{}".format("Relevance (unitless)"), fontsize=5)
 
 
 def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explanations, eval_name):
     for i in range(inputs.shape[0]):
         n_rows = cfg.time_steps if not cfg.mean_input else 1
         n_cols = len(cfg.data_types) * (len(cfg.explanation_names) + 1)
-        fig, ax = plt.subplots(n_rows, n_cols, figsize=(1.5 * n_cols + 1.5, n_rows * 1.25),
+        fig, ax = plt.subplots(n_rows, n_cols, figsize=(1.5 * n_cols + 1.5, n_rows * 1.5),
                                subplot_kw={"projection": ccrs.Robinson()}, squeeze=False)
 
         gt_index = torch.argmax(gt[i])
@@ -722,8 +720,6 @@ def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explan
 
         # Plot inputs
         for time in range(inputs.shape[1]):
-            ax[time, 0].axis('off')
-            ax[time, 0].axis('tight')
             for var in range(inputs.shape[2]):
                 vmin = -1.5  # torch.min(raw_input[i, var]) / 2
                 vmax = -vmin
@@ -742,14 +738,15 @@ def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explan
                                                 inputs[i][time, var, :, :].detach().numpy(),
                                                 cmap=cmap, transform=ccrs.PlateCarree(), shading='auto', vmin=vmin,
                                                 vmax=vmax, linewidth=0, rasterized=True)
-                cb = plt.colorbar(plot, location="bottom", ax=ax[time, col], fraction=0.09, pad=0.2)
+                cb = plt.colorbar(plot, location="bottom", ax=ax[time, col], fraction=0.09, pad=0.1)
                 cb.ax.tick_params(labelsize=5)
                 cb.ax.ticklabel_format(useOffset=True, style='plain')
-                cb.ax.set_title("{}".format("Sea Surface Temperature Anomaly (°C)"), fontsize=5)
+                ax[time, col].title.set_text("{}".format("Sea Surface Temperature Anomaly (°C)"))
+                ax[time, col].title.set_size(5)
         for exp in range(all_explanations.shape[0]):
             for var in range(all_explanations.shape[2]):
                 plot_single_explanation(all_explanations[exp, i, var],
-                                        ax[:, var * (all_explanations.shape[0] + 1) + exp + 1], dims, pad=0.2)
+                                        ax[:, var * (all_explanations.shape[0] + 1) + exp + 1], dims, exp)
 
         fig.tight_layout()
         fig.savefig(
