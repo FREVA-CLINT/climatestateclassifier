@@ -11,6 +11,9 @@ from .. import config as cfg
 
 def generate_single_explanation(model, exp, input, output):
     _, output = output.max(1)
+    model = model.to(cfg.device)
+    input = input.to(cfg.device)
+    output = output.to(cfg.device)
 
     if 'lrp' in exp:
         layers = list(model._modules["encoder"]._modules["main"]) + list(model._modules["decoder"]._modules["main"])
@@ -26,7 +29,7 @@ def generate_single_explanation(model, exp, input, output):
         lrp = LRP(model)
         attr = lrp.attribute(input, target=output)
     elif 'ig' in exp:
-        ig = IntegratedGradients(model.to(cfg.device))
+        ig = IntegratedGradients(model)
         attr = torch.zeros_like(input)
         for i in range(input.shape[0] // 16):
             attr[16 * i:16 * (i + 1)] = ig.attribute(input[16 * i:16 * (i + 1)], target=output[16 * i:16 * (i + 1)])
