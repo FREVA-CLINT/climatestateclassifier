@@ -31,10 +31,12 @@ def generate_single_explanation(model, exp, input, output):
     elif 'ig' in exp:
         ig = IntegratedGradients(model)
         attr = torch.zeros_like(input)
-        for i in range(input.shape[0] // 16):
-            attr[16 * i:16 * (i + 1)] = ig.attribute(input[16 * i:16 * (i + 1)], target=output[16 * i:16 * (i + 1)])
-            if i == (input.shape[0] // 16) - 1 and input.shape[0] % 16 != 0:
-                attr[16 * (i + 1):] = ig.attribute(input[16 * (i + 1):], target=output[16 * (i + 1):])
+        print(input.shape)
+        div_batch = 1 if cfg.rotate_samples else 16
+        for i in range(input.shape[0] // div_batch):
+            attr[div_batch * i:div_batch * (i + 1)] = ig.attribute(input[div_batch * i:div_batch * (i + 1)], target=output[div_batch * i:div_batch * (i + 1)])
+            if i == (input.shape[0] // div_batch) - 1 and input.shape[0] % div_batch != 0:
+                attr[div_batch * (i + 1):] = ig.attribute(input[div_batch * (i + 1):], target=output[div_batch * (i + 1):])
     elif 'occlusion' in exp:
         occlusion = Occlusion(model)
         size = int(exp.split("_")[1])
@@ -45,23 +47,23 @@ def generate_single_explanation(model, exp, input, output):
                                    baselines=0)
     elif 'shap' in exp:
         gradient_shap = GradientShap(model)
-
+        div_batch = 1 if cfg.rotate_samples else 16
         attr = torch.zeros_like(input)
-        for i in range(input.shape[0] // 16):
+        for i in range(input.shape[0] // div_batch):
             torch.manual_seed(0)
             np.random.seed(0)
-            rand_img_dist = torch.cat([input[16 * i:16 * (i + 1)] * 0, input[16 * i:16 * (i + 1)] * 1])
-            attr[16 * i:16 * (i + 1)] = gradient_shap.attribute(input[16 * i:16 * (i + 1)],
-                                                                n_samples=16,
+            rand_img_dist = torch.cat([input[div_batch * i:div_batch * (i + 1)] * 0, input[div_batch * i:div_batch * (i + 1)] * 1])
+            attr[div_batch * i:div_batch * (i + 1)] = gradient_shap.attribute(input[div_batch * i:div_batch * (i + 1)],
+                                                                n_samples=div_batch,
                                                                 stdevs=0.0001,
-                                                                baselines=rand_img_dist[16 * i:16 * (i + 1)],
-                                                                target=output[16 * i:16 * (i + 1)])
-            if i == (input.shape[0] // 16) - 1 and input.shape[0] % 16 != 0:
-                attr[16 * (i + 1):] = gradient_shap.attribute(input[16 * (i + 1):],
-                                                              n_samples=16,
+                                                                baselines=rand_img_dist[div_batch * i:div_batch * (i + 1)],
+                                                                target=output[div_batch * i:div_batch * (i + 1)])
+            if i == (input.shape[0] // div_batch) - 1 and input.shape[0] % div_batch != 0:
+                attr[div_batch * (i + 1):] = gradient_shap.attribute(input[div_batch * (i + 1):],
+                                                              n_samples=div_batch,
                                                               stdevs=0.0001,
-                                                              baselines=rand_img_dist[16 * (i + 1):],
-                                                              target=output[16 * (i + 1):])
+                                                              baselines=rand_img_dist[div_batch * (i + 1):],
+                                                              target=output[div_batch * (i + 1):])
 
     attr /= torch.amax(attr, (2, 3))[:, :, None, None]
     return torch.split(attr, cfg.time_steps if not cfg.mean_input else 1, dim=1)
