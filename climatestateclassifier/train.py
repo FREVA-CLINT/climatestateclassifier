@@ -109,7 +109,8 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
         if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
             save_ckpt('{:s}/ckpt/{:d}{:s}.pth'.format(cfg.snapshot_dir, i + 1, rotation_string),
-                      [('model', model)], [('optimizer', optimizer)], i + 1)
+                      [('model', model)], [('optimizer', optimizer)], i + 1,
+                      data_stats=dataset_train.data_normalizer.data_stats if dataset_train.data_normalizer else None)
 
     writer.close()
 
