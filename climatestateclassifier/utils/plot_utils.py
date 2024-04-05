@@ -721,8 +721,8 @@ def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explan
         # Plot inputs
         for time in range(inputs.shape[1]):
             for var in range(inputs.shape[2]):
-                vmin = -1.5  # torch.min(raw_input[i, var]) / 2
-                vmax = -vmin
+                vmin = -1.5 if cfg.data_types[var] == "tsurf" else torch.min(raw_input[i, var]) / 2
+                vmax = -vmin if cfg.data_types[var] == "tsurf" else torch.max(raw_input[i, var]) / 2
                 if cfg.data_types[var] == 'pr':
                     cmap = "RdBu"
                 else:
