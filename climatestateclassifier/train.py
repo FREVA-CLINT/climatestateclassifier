@@ -48,7 +48,8 @@ def start_training_cycle(train_samples, val_samples, rotation=None):
 
     # create data sets
     dataset_train = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, train_samples, cfg.train_categories, cfg.labels)
-    dataset_val = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
+    dataset_val = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, val_samples, cfg.val_categories, cfg.labels,
+                               data_stats=dataset_train.data_normalizer.data_stats if dataset_train.data_normalizer else None)
 
     iterator_train = iter(DataLoader(dataset_train, batch_size=cfg.batch_size,
                                      sampler=InfiniteSampler(len(dataset_train)),

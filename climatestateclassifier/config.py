@@ -161,6 +161,7 @@ def set_evaluate_args(arg_file=None, prog_func=None):
     arg_parser.add_argument('--plot-explanations', action='store_true', help="Plot LRP explanations")
     arg_parser.add_argument('--load-from-csv', action='store_true', help="Load results from CSV file")
     arg_parser.add_argument('--plot-timeseries', action='store_true', help="Load results from CSV file")
+    arg_parser.add_argument('--load-data-stats', action='store_true', help="Load stats from training data")
     arg_parser.add_argument('--timeseries-names',  type=str_list, default=None, help="Load results from CSV file")
     arg_parser.add_argument('--timeseries-colors',  type=str_list, default="gray,red,purple,blue,green", help="Load results from CSV file")
     arg_parser.add_argument('--cmap-colors', type=str_list, default=None,

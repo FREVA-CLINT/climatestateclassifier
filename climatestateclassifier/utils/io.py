@@ -10,8 +10,10 @@ def get_state_dict_on_cpu(obj):
     return state_dict
 
 
-def save_ckpt(ckpt_name, models, optimizers, n_iter):
+def save_ckpt(ckpt_name, models, optimizers, n_iter, data_stats=None):
     ckpt_dict = {'n_iter': n_iter}
+    if data_stats:
+        ckpt_dict['data_stats'] = data_stats
     for prefix, model in models:
         ckpt_dict[prefix] = get_state_dict_on_cpu(model)
 
@@ -31,3 +33,7 @@ def load_ckpt(ckpt_name, models, device, optimizers=None):
         for prefix, optimizer in optimizers:
             optimizer.load_state_dict(ckpt_dict[prefix])
     return ckpt_dict['n_iter']
+
+
+def load_data_stats(ckpt_name, device):
+    return torch.load(ckpt_name, map_location=device)['data_stats']

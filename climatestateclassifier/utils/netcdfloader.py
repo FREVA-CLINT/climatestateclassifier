@@ -75,9 +75,10 @@ def load_netcdf(data_paths, data_types, keep_dss=False):
 
 
 class NetCDFLoader(Dataset):
-    def __init__(self, data_root_dirs, data_types, sample_names, sample_categories, labels):
+    def __init__(self, data_root_dirs, data_types, sample_names, sample_categories, labels, data_stats=None):
         super(NetCDFLoader, self).__init__()
 
+        self.data_normalizer = None
         self.labels = labels
         self.categories = sample_categories
         self.n_samples = len(sample_names)
@@ -123,7 +124,7 @@ class NetCDFLoader(Dataset):
             self.img_sizes = ((self.img_sizes[0][1], cfg.lons),)
 
         if cfg.normalization:
-            self.data_normalizer = DataNormalizer(self.input, cfg.normalization)
+            self.data_normalizer = DataNormalizer(self.input, cfg.normalization, data_stats=data_stats)
 
     def __getitem__(self, index):
         input_data, input_labels = [], []

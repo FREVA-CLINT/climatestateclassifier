@@ -5,7 +5,7 @@ import torch
 from . import config as cfg
 from .model.net import ClassificationNet
 from .utils.explain_net import generate_explanations
-from .utils.io import load_ckpt
+from .utils.io import load_ckpt, load_data_stats
 from .utils.netcdfloader import NetCDFLoader
 from .utils.plot_utils import plot_single_predictions, plot_explanations, \
     read_results_from_csv, save_results_as_csv, plot_predictions_by_category_timeseries, \
@@ -14,9 +14,14 @@ from .utils.plot_utils import plot_single_predictions, plot_explanations, \
 
 def create_prediction(model_name, val_samples):
     # load data
-    dataset = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, val_samples, cfg.val_categories, cfg.labels)
-    print(dataset.__len__())
-    input = torch.stack([dataset[j][0] for j in range(dataset.__len__())]).to(torch.device('cpu'))
+    if cfg.load_data_stats:
+        data_stats = load_data_stats(model_name, cfg.device)
+    else:
+        data_stats = None
+    print(data_stats)
+    dataset = NetCDFLoader(cfg.data_root_dirs, cfg.data_types, val_samples, cfg.val_categories, cfg.labels,
+                           data_stats=data_stats)
+    input_data = torch.stack([dataset[j][0] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     label = torch.stack([dataset[j][1] for j in range(dataset.__len__())]).to(torch.device('cpu'))
     category = [dataset[j][2] for j in range(dataset.__len__())]
     sample_name = [dataset[j][3] for j in range(dataset.__len__())]
@@ -32,7 +37,7 @@ def create_prediction(model_name, val_samples):
     load_ckpt(model_name, [('model', model)], cfg.device)
     model.eval()
     with torch.no_grad():
-        output = model(input.to(cfg.device)).to(torch.device('cpu'))
+        output = model(input_data.to(cfg.device)).to(torch.device('cpu'))
 
     dims = None
     explanations = None
@@ -44,16 +49,16 @@ def create_prediction(model_name, val_samples):
             for key in ("time", "lon", "lat"):
                 if key in dim:
                     dims[key] = coords[dim].values
-        explanations = generate_explanations(model, input.to(cfg.device), output).to(torch.device('cpu'))
+        explanations = generate_explanations(model, input_data.to(cfg.device), output).to(torch.device('cpu'))
 
     # renormalize input data
-    input = torch.stack(torch.split(input, len(cfg.data_types), dim=1), dim=1)
+    input_data = torch.stack(torch.split(input_data, len(cfg.data_types), dim=1), dim=1)
     if cfg.normalization:
         for v in range(len(cfg.data_types)):
-            for i in range(input.shape[0]):
-                input[i, :, v, :, :] = dataset.data_normalizer.renormalize(input[i, :, v, :, :], v)
+            for i in range(input_data.shape[0]):
+                input_data[i, :, v, :, :] = dataset.data_normalizer.renormalize(input_data[i, :, v, :, :], v)
 
-    return input, output, label, category, sample_name, dims, explanations
+    return input_data, output, label, category, sample_name, dims, explanations
 
 
 def evaluate(arg_file=None, prog_func=None):
