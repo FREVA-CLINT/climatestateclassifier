@@ -723,7 +723,7 @@ def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explan
             for var in range(inputs.shape[2]):
                 vname = cfg.data_types[var]
                 vmin = -1.5 if vname in ["tsurf", "tas"] else torch.min(inputs[i][time, var]) / 2
-                vmax = -vmin if vname == ["tsurf", "tas"] else torch.max(inputs[i][time, var]) / 2
+                vmax = -vmin if vname in ["tsurf", "tas"] else torch.max(inputs[i][time, var]) / 2
                 if cfg.data_types[var] == 'pr':
                     cmap = "RdBu"
                 else:
