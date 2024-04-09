@@ -742,7 +742,7 @@ def plot_explanations(inputs, dims, gt, sample_names, category_names, all_explan
                 cb = plt.colorbar(plot, location="bottom", ax=ax[time, col], fraction=0.09, pad=0.1)
                 cb.ax.tick_params(labelsize=5)
                 cb.ax.ticklabel_format(useOffset=True, style='plain')
-                ax[time, col].title.set_text("{}".format("Sea Surface Temperature Anomaly (°C)" if vname == "tsurf" else vname))
+                ax[time, col].title.set_text("{}".format("Sea Surface Temperature Anomaly (°C)" if vname in ["tsurf", "tas"] else vname))
                 ax[time, col].title.set_size(5)
         for exp in range(all_explanations.shape[0]):
             for var in range(all_explanations.shape[2]):
