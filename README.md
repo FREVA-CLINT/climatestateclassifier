@@ -73,7 +73,7 @@ Once installed, the package can be used as:
 
 ## Example
 
-An example can be found in the directory `demo`.
+An example application can be found in the directory `demo`.
 The instructions to run the example are given in the demo/README.md file.
 
 ## License

@@ -1,8 +1,8 @@
 --model-dir demo/snapshots/
 --eval-dir demo/results/
 --data-root-dir demo/data/
---model-names tsurf
---eval-names demo
+--model-names 100
+--eval-names 100
 --data-types tsurf
 --val-categories 1992
 --val-samples 1
@@ -11,5 +11,4 @@
 --device cpu
 --mean-input
 --plot-tables
---plot-explanations
---explanation-names lrp_gamma
+--plot-explanations lrp_gamma

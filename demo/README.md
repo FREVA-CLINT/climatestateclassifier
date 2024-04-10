@@ -8,7 +8,8 @@ The demo gives an example for training and evaluating a model for climate state 
 
 The `demo` folder contains:
 - a text file `demo_train.txt` containing the input arguments of the train example
-- a text file `demo_evaluate.txt` containing the input arguments of the evaluate example
+- a text file `demo_evaluate.txt` containing the input arguments of the evaluate example, loading a model which has been trained for 10000 iterations (tsurf.pth)
+- a text file `demo_evaluate.txt` containing the input arguments of two 20CR examples, the 1809 unidentified eruption (18101tasnh.nc) and the 1815 Tambora eruption (18161tastr.nc), loading a model which has been trained for 10000 iterations (tsurf.pth)
 - a directory `results` where the result files will be stored
 - a directory `data` where the data is stored
 - a directory `snapshots` where a demo model snapshot is stored
@@ -46,7 +47,7 @@ Each evaluation produces 2 sub-directories in the results directory:
 
 ### Visualization
 
-We can compare the heatmaps of different classes from the predictions of our pre-trained model:
+We can compare the heatmaps of different classes from the predictions of our pre-trained model (tsurf.pth):
 
 ![Original dataset](results/explanations/demo19921North.jpg)
 ![Original dataset](results/explanations/demo19921South.jpg)
