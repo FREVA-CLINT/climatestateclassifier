@@ -219,16 +219,18 @@ def plot_predictions_by_category(predictions, labels, categories, eval_name):
     plt.clf()
 
 
-def plot_single_explanation(explanations, ax, dims, pad=0.13):
+def plot_single_explanation(explanations, ax, dims):
     # color map
     cmap = matplotlib.colors.ListedColormap(cfg.explanation_cmap)
     new_cmap = cmap(np.arange(cmap.N))
     new_cmap = ListedColormap(new_cmap)
 
+    # normalize explanations
+    explanations /= torch.nanquantile(explanations, 0.95)
+
     vmin = 0
     vmax = 1
     for time in range(explanations.shape[0]):
-        # axes[i].axis('off')
         gl = ax[time].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
         gl.top_labels = False
         gl.right_labels = False
@@ -236,12 +238,12 @@ def plot_single_explanation(explanations, ax, dims, pad=0.13):
         ax[time].add_feature(cartopy.feature.BORDERS, edgecolor="black", linestyle="--", linewidth=0.3)
 
         ax[time].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
-        plot = ax[time].pcolormesh(dims["lon"], dims["lat"], 5000 * explanations[time, :, :].detach().numpy(),
+        plot = ax[time].pcolormesh(dims["lon"], dims["lat"], explanations[time, :, :].detach().numpy(),
                                    vmin=vmin, vmax=vmax,
                                    transform=ccrs.PlateCarree(), shading='auto', cmap=new_cmap, linewidth=0,
                                    rasterized=True)
 
-        cb = plt.colorbar(plot, location="bottom", ax=ax[time], fraction=0.09, pad=pad)
+        cb = plt.colorbar(plot, location="bottom", ax=ax[time], fraction=0.09, pad=0.2)
         cb.ax.tick_params(labelsize=5)
         cb.ax.ticklabel_format(useOffset=True, style='plain')
 
@@ -285,7 +287,7 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
             ax[time, 0].axis('off')
             ax[time, 0].axis('tight')
             for var in range(inputs.shape[2]):
-                vmin = -3#torch.min(raw_input[i, var]) / 2
+                vmin = torch.min(inputs[i, var]) / 2
                 vmax = -vmin
                 if cfg.data_types[var] == 'pr':
                     cmap = "RdBu"
@@ -305,16 +307,16 @@ def plot_explanations(inputs, dims, gt, outputs, sample_names, category_names, a
                 cb = plt.colorbar(plot, location="bottom", ax=ax[time, col], fraction=0.09, pad=0.2)
                 cb.ax.tick_params(labelsize=5)
                 cb.ax.ticklabel_format(useOffset=True, style='plain')
-                cb.ax.set_title("{}".format("Sea Surface Temperature Anomaly (°C)"), fontsize=5)
+                cb.ax.set_title("{}".format(cfg.data_types[var]), fontsize=5)
         for exp in range(all_explanations.shape[0]):
             for var in range(all_explanations.shape[2]):
                 plot_single_explanation(all_explanations[exp, i, var],
-                                        ax[:, var * (all_explanations.shape[0] + 1) + exp + 1 + 1], dims, pad=0.2)
+                                        ax[:, var * (all_explanations.shape[0] + 1) + exp + 1 + 1], dims)
 
         fig.tight_layout()
         fig.savefig(
             '{}/explanations/{}{}{}{}.jpg'.format(cfg.eval_dir, eval_name, category_names[i], sample_names[i],
-                                                     gt_class.replace(' ', '')),
+                                                  gt_class.replace(' ', '')),
             dpi=800)
         plt.close(fig)
         plt.clf()

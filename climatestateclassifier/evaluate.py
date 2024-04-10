@@ -2,7 +2,6 @@ import os
 
 import torch
 
-from .lrp import converter
 from . import config as cfg
 from .model.net import ClassificationNet
 from .utils.explain_net import generate_explanations
@@ -30,8 +29,6 @@ def create_prediction(model_name, val_samples):
 
     load_ckpt(model_name, [('model', model)], cfg.device)
     model.eval()
-    if cfg.plot_explanations:
-        model = converter.convert_net(model).to(cfg.device)
     with torch.no_grad():
         output = model(input.to(cfg.device)).to(torch.device('cpu'))
 
@@ -45,7 +42,7 @@ def create_prediction(model_name, val_samples):
             for key in ("time", "lon", "lat"):
                 if key in dim:
                     dims[key] = coords[dim].values
-        explanations = generate_explanations(model, input.to(cfg.device)).to(torch.device('cpu'))
+        explanations = generate_explanations(model, input, output).to(torch.device('cpu'))
 
     # renormalize input data
     input = torch.stack(torch.split(input, len(cfg.data_types), dim=1), dim=1)
