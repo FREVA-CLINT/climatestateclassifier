@@ -682,7 +682,7 @@ def plot_single_explanation(explanations, ax, dims, exp):
 
     explanations /= torch.nanquantile(explanations, 0.95)
 
-    vmin = 0
+    vmin = -1
     vmax = 1
     for time in range(explanations.shape[0]):
         gl = ax[time].gridlines(crs=ccrs.Robinson(), draw_labels=False, linewidth=0.1)
