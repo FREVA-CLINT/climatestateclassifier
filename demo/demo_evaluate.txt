@@ -11,4 +11,5 @@
 --device cpu
 --mean-input
 --plot-tables
---plot-explanations lrp_gamma
+--plot-explanations
+--explanation-names lrp_gamma
