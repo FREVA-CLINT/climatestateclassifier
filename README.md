@@ -82,5 +82,5 @@ The instructions to run the example are given in the demo/README.md file.
 
 ## Contributions
 
-`Climate State Classifier` is maintained by the Climate Informatics and Technology group at DKRZ (Deutsches Klimarechenzentrum).
+`Climate State Classifier` is maintained by the Data Analysis Department at DKRZ (Deutsches Klimarechenzentrum).
 - Current contributing authors: Johannes Meuer, Claudia Timmreck, Shih-Wei Fang, Christopher Kadow.
