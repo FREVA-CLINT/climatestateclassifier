@@ -84,3 +84,18 @@ The instructions to run the example are given in the demo/README.md file.
 
 `Climate State Classifier` is maintained by the Data Analysis Department at DKRZ (Deutsches Klimarechenzentrum).
 - Current contributing authors: Johannes Meuer, Claudia Timmreck, Shih-Wei Fang, Christopher Kadow.
+
+## References
+
+```bibtex
+@article{meuer2024fingerprints,
+  title={Fingerprints of past volcanic eruptions can be detected in historical climate records using machine learning},
+  author={Meuer, Johannes and Timmreck, Claudia and Fang, Shih-Wei and Kadow, Christopher},
+  journal={Communications Earth \& Environment},
+  volume={5},
+  number={1},
+  pages={455},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
+}
+```
