@@ -12,7 +12,7 @@ from .. import config as cfg
 
 class InfiniteSampler(Sampler):
     def __init__(self, num_samples, data_source=None):
-        super().__init__(data_source)
+        super().__init__()
         self.num_samples = num_samples
 
     def __iter__(self):
